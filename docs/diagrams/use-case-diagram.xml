@@ -1,0 +1,314 @@
+<mxGraphModel dx="1025" dy="425" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="CGIBdvKd4RhsJ-Ajmq1t-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FAFA;strokeColor=#0D7C7C;strokeWidth=3;fontSize=16;fontStyle=1;fontColor=#0D7C7C;verticalAlign=top;spacingTop=10;rounded=0;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 25px;&quot;&gt;MedAxis — National Prescription Trust Infrastructure&lt;/font&gt;" vertex="1">
+      <mxGeometry height="1950" width="1640" x="300" y="90" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_DOC" parent="1" style="shape=umlActor;fillColor=#0D7C7C;strokeColor=#0D7C7C;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Doctor" vertex="1">
+      <mxGeometry height="80" width="60" x="134" y="282" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_PHA" parent="1" style="shape=umlActor;fillColor=#0D7C7C;strokeColor=#0D7C7C;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Pharmacist" vertex="1">
+      <mxGeometry height="80" width="60" x="134" y="726" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_PAT" parent="1" style="shape=umlActor;fillColor=#0D7C7C;strokeColor=#0D7C7C;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Patient" vertex="1">
+      <mxGeometry height="80" width="60" x="134" y="1204" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_REG" parent="1" style="shape=umlActor;fillColor=#0D7C7C;strokeColor=#0D7C7C;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Regulator" vertex="1">
+      <mxGeometry height="80" width="60" x="134" y="1605" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_INS" parent="1" style="shape=umlActor;fillColor=#0D7C7C;strokeColor=#0D7C7C;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Insurer&#xa;(Ma MGPAP)" vertex="1">
+      <mxGeometry height="80" width="60" x="1985" y="415.5" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_ADM" parent="1" style="shape=umlActor;fillColor=#555566;strokeColor=#555566;fontColor=#1A1A2E;fontSize=13;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Admin" vertex="1">
+      <mxGeometry height="80" width="60" x="1985" y="1190" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_MOSIP" parent="1" style="shape=umlActor;fillColor=#4A7A9B;strokeColor=#4A7A9B;fontColor=#1A1A2E;fontSize=12;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="MOSIP / eSignet&#xa;(Digital ID)" vertex="1">
+      <mxGeometry height="80" width="60" x="1985" y="900" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_INJI" parent="1" style="shape=umlActor;fillColor=#4A7A9B;strokeColor=#4A7A9B;fontColor=#1A1A2E;fontSize=12;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Inji Certify&#xa;(MoH VC Issuer)" vertex="1">
+      <mxGeometry height="80" width="60" x="1985" y="160" as="geometry" />
+    </mxCell>
+    <mxCell id="ACT_VERIFY" parent="1" style="shape=umlActor;fillColor=#4A7A9B;strokeColor=#4A7A9B;fontColor=#1A1A2E;fontSize=12;fontStyle=1;verticalLabelPosition=bottom;verticalAlign=top;" value="Inji Verify SDK&#xa;(VC Verifier)" vertex="1">
+      <mxGeometry height="80" width="60" x="1985" y="666" as="geometry" />
+    </mxCell>
+    <mxCell id="UC1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#1A1A2E;fontStyle=1;" value="1. Issue Digital&#xa;Prescription" vertex="1">
+      <mxGeometry height="65" width="190" x="374" y="202" as="geometry" />
+    </mxCell>
+    <mxCell id="UC1a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="1.1 Search Patient" vertex="1">
+      <mxGeometry height="50" width="160" x="634" y="142" as="geometry" />
+    </mxCell>
+    <mxCell id="UC1b" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="1.2 Generate RxID" vertex="1">
+      <mxGeometry height="50" width="160" x="634" y="212" as="geometry" />
+    </mxCell>
+    <mxCell id="UC1c" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="1.3 Digital Sign&#xa;Prescription" vertex="1">
+      <mxGeometry height="50" width="160" x="634" y="282" as="geometry" />
+    </mxCell>
+    <mxCell id="UC1d" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="1.4 Link Prescription&#xa;to Patient Digital ID" vertex="1">
+      <mxGeometry height="50" width="160" x="634" y="352" as="geometry" />
+    </mxCell>
+    <mxCell id="UC2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="2. View Issued&#xa;Prescriptions" vertex="1">
+      <mxGeometry height="65" width="190" x="374" y="308" as="geometry" />
+    </mxCell>
+    <mxCell id="UC3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="3. Cancel&#xa;Prescription" vertex="1">
+      <mxGeometry height="65" width="190" x="374" y="472" as="geometry" />
+    </mxCell>
+    <mxCell id="UC3a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="3.1 Log Cancellation" vertex="1">
+      <mxGeometry height="50" width="160" x="634" y="477" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#1A1A2E;fontStyle=1;" value="4. Dispense&#xa;Medication" vertex="1">
+      <mxGeometry height="65" width="190" x="376" y="666" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="4.1 Lookup Active&#xa;Prescriptions by CNIE" vertex="1">
+      <mxGeometry height="50" width="160" x="636" y="586" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4b" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="4.2 Verify Doctor&#xa;License VC" vertex="1">
+      <mxGeometry height="50" width="160" x="636" y="656" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4c" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="4.3 Verify Patient&#xa;Identity via OTP" vertex="1">
+      <mxGeometry height="50" width="160" x="636" y="726" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4d" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="4.4 Record&#xa;Dispensing Event" vertex="1">
+      <mxGeometry height="50" width="160" x="616" y="836" as="geometry" />
+    </mxCell>
+    <mxCell id="UC4e" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="4.4.1 Update&#xa;Prescription Status" vertex="1">
+      <mxGeometry height="50" width="160" x="880" y="836" as="geometry" />
+    </mxCell>
+    <mxCell id="UC5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="5. Flag Suspicious&#xa;Prescription" vertex="1">
+      <mxGeometry height="65" width="190" x="376" y="876" as="geometry" />
+    </mxCell>
+    <mxCell id="UC6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="6. View Dispensing&#xa;History" vertex="1">
+      <mxGeometry height="65" width="190" x="376" y="1006" as="geometry" />
+    </mxCell>
+    <mxCell id="UC7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1A5C7C;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#ffffff;fontStyle=1;" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;7. Authenticate via&lt;br&gt;Digital ID (eSignet)&lt;/font&gt;" vertex="1">
+      <mxGeometry height="150" width="210" x="1230" y="706" as="geometry" />
+    </mxCell>
+    <mxCell id="UC8" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="8. Manage Session&#xa;&amp; Role Assignment" vertex="1">
+      <mxGeometry height="70" width="210" x="1440" y="990" as="geometry" />
+    </mxCell>
+    <mxCell id="UC9" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#1A1A2E;fontStyle=1;" value="9. View Prescription&#xa;History (Read-Only)" vertex="1">
+      <mxGeometry height="65" width="200" x="435" y="1164" as="geometry" />
+    </mxCell>
+    <mxCell id="UC10" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="10. Report Unauthorized&#xa;Prescription" vertex="1">
+      <mxGeometry height="65" width="200" x="375" y="1290" as="geometry" />
+    </mxCell>
+    <mxCell id="UC10a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="10.1 Create&#xa;Dispute Record" vertex="1">
+      <mxGeometry height="50" width="160" x="635" y="1295" as="geometry" />
+    </mxCell>
+    <mxCell id="UC11" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="11. Receive SMS&#xa;Notification" vertex="1">
+      <mxGeometry height="65" width="200" x="370" y="1390" as="geometry" />
+    </mxCell>
+    <mxCell id="UC12" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#1A1A2E;fontStyle=1;" value="12. View National&#xa;Dashboard" vertex="1">
+      <mxGeometry height="65" width="200" x="380" y="1540" as="geometry" />
+    </mxCell>
+    <mxCell id="UC12a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="12.1 High-Frequency&#xa;Prescriber Report" vertex="1">
+      <mxGeometry height="50" width="170" x="700" y="1530" as="geometry" />
+    </mxCell>
+    <mxCell id="UC13" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="13. View Audit&#xa;Trail by RxID" vertex="1">
+      <mxGeometry height="65" width="200" x="380" y="1670" as="geometry" />
+    </mxCell>
+    <mxCell id="UC14" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="14. Manage Doctor&#xa;License (Activate/Revoke)" vertex="1">
+      <mxGeometry height="65" width="200" x="380" y="1800" as="geometry" />
+    </mxCell>
+    <mxCell id="UC14a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="14.1 Log Status&#xa;Change" vertex="1">
+      <mxGeometry height="50" width="160" x="640" y="1805" as="geometry" />
+    </mxCell>
+    <mxCell id="UC15" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="15. View Flagged&#xa;Prescriptions" vertex="1">
+      <mxGeometry height="65" width="200" x="380" y="1930" as="geometry" />
+    </mxCell>
+    <mxCell id="UC16" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="16. Register Pharmacy&#xa;&amp; Assign Pharmacists" vertex="1">
+      <mxGeometry height="65" width="200" x="660" y="1640" as="geometry" />
+    </mxCell>
+    <mxCell id="UC17" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0D7C7C;strokeWidth=2;fontSize=11;fontColor=#1A1A2E;fontStyle=1;" value="17. Submit Insurance&#xa;Claim" vertex="1">
+      <mxGeometry height="65" width="200" x="1625" y="335" as="geometry" />
+    </mxCell>
+    <mxCell id="UC17a" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="17.1 Auto-Validate&#xa;Claim" vertex="1">
+      <mxGeometry height="50" width="170" x="1370" y="303" as="geometry" />
+    </mxCell>
+    <mxCell id="UC17b" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=10;fontColor=#1A1A2E;" value="17.2 Determine&#xa;Co-Payment" vertex="1">
+      <mxGeometry height="50" width="170" x="1365" y="373" as="geometry" />
+    </mxCell>
+    <mxCell id="UC18" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="18. Query Patient&#xa;Dispensing History" vertex="1">
+      <mxGeometry height="65" width="200" x="1619" y="423" as="geometry" />
+    </mxCell>
+    <mxCell id="UC19" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E6F4F4;strokeColor=#0D7C7C;fontSize=11;fontColor=#1A1A2E;" value="19. Generate Monthly&#xa;Claims Report" vertex="1">
+      <mxGeometry height="65" width="200" x="1619" y="518" as="geometry" />
+    </mxCell>
+    <mxCell id="UC20" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F0F0F8;strokeColor=#555566;fontSize=11;fontColor=#1A1A2E;" value="20. Manage User&#xa;Accounts &amp; Roles" vertex="1">
+      <mxGeometry height="65" width="200" x="1560" y="1139" as="geometry" />
+    </mxCell>
+    <mxCell id="UC21" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F0F0F8;strokeColor=#555566;fontSize=11;fontColor=#1A1A2E;" value="21. View System&#xa;Audit Log" vertex="1">
+      <mxGeometry height="65" width="200" x="1641" y="1219" as="geometry" />
+    </mxCell>
+    <mxCell id="UC22" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F0F0F8;strokeColor=#555566;fontSize=11;fontColor=#1A1A2E;" value="22. Configure System&#xa;Parameters" vertex="1">
+      <mxGeometry height="65" width="200" x="1641" y="1349" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d1" edge="1" parent="1" source="ACT_DOC" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d2" edge="1" parent="1" source="ACT_DOC" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_d3" edge="1" parent="1" source="ACT_DOC" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC3">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_p4" edge="1" parent="1" source="ACT_PHA" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC4">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_p5" edge="1" parent="1" source="ACT_PHA" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC5">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_p6" edge="1" parent="1" source="ACT_PHA" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC6">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_p7" edge="1" parent="1" source="ACT_PHA" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC7">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="720" y="810" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_pt9" edge="1" parent="1" source="ACT_PAT" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC9">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_pt10" edge="1" parent="1" source="ACT_PAT" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC10">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_pt11" edge="1" parent="1" source="ACT_PAT" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC11">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_pt7" edge="1" parent="1" source="ACT_PAT" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC7">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r12" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC12">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r13" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC13">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r14" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC14">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r15" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC15">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r16" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC16">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_r7" edge="1" parent="1" source="ACT_REG" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC7">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="480" y="1480" />
+          <mxPoint x="800" y="1390" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_i17" edge="1" parent="1" source="ACT_INS" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC17">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_i18" edge="1" parent="1" source="ACT_INS" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC18">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_i19" edge="1" parent="1" source="ACT_INS" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC19">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_a20" edge="1" parent="1" source="ACT_ADM" style="strokeColor=#555566;strokeWidth=1.5;endArrow=none;" target="UC20">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_a21" edge="1" parent="1" source="ACT_ADM" style="strokeColor=#555566;strokeWidth=1.5;endArrow=none;" target="UC21">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_a22" edge="1" parent="1" source="ACT_ADM" style="strokeColor=#555566;strokeWidth=1.5;endArrow=none;" target="UC22">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_a7" edge="1" parent="1" source="ACT_ADM" style="strokeColor=#555566;strokeWidth=1.5;endArrow=none;entryX=1;entryY=1;entryDx=0;entryDy=0;" target="UC7">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_a8" edge="1" parent="1" source="ACT_ADM" style="strokeColor=#555566;strokeWidth=1.5;endArrow=none;" target="UC8">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_m7" edge="1" parent="1" source="UC7" style="strokeColor=#4A7A9B;strokeWidth=1.5;endArrow=none;" target="ACT_MOSIP">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_m_otp" edge="1" parent="1" source="UC4c" style="strokeColor=#4A7A9B;strokeWidth=1.5;endArrow=none;" target="ACT_MOSIP">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1460" y="930" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_i_sign" edge="1" parent="1" source="UC1c" style="strokeColor=#4A7A9B;strokeWidth=1.5;endArrow=none;" target="ACT_INJI">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="e_v_vc" edge="1" parent="1" source="UC4b" style="strokeColor=#4A7A9B;strokeWidth=1.5;endArrow=none;" target="ACT_VERIFY">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="CGIBdvKd4RhsJ-Ajmq1t-3" edge="1" parent="1" source="ACT_DOC" style="strokeColor=#0D7C7C;strokeWidth=1.5;endArrow=none;" target="UC7">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="780" y="470" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="i1a" edge="1" parent="1" source="UC1" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC1a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i1b" edge="1" parent="1" source="UC1" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC1b" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i1c" edge="1" parent="1" source="UC1" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC1c" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i1d" edge="1" parent="1" source="UC1" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC1d" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i3a" edge="1" parent="1" source="UC3" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC3a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i4a" edge="1" parent="1" source="UC4" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC4a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i4b" edge="1" parent="1" source="UC4" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC4b" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i4c" edge="1" parent="1" source="UC4" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC4c" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i4d" edge="1" parent="1" source="UC4" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC4d" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i4e" edge="1" parent="1" source="UC4d" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC4e" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i10a" edge="1" parent="1" source="UC10" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC10a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i12a" edge="1" parent="1" source="UC12" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC12a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i14a" edge="1" parent="1" source="UC14" style="dashed=1;strokeColor=#0D7C7C;fontSize=9;fontColor=#0D7C7C;endArrow=open;endFill=0;" target="UC14a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i17a" edge="1" parent="1" source="UC17" style="dashed=1;strokeColor=#4A7A9B;fontSize=9;fontColor=#4A7A9B;endArrow=open;endFill=0;" target="UC17a" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="i17b" edge="1" parent="1" source="UC17" style="dashed=1;strokeColor=#4A7A9B;fontSize=9;fontColor=#4A7A9B;endArrow=open;endFill=0;" target="UC17b" value="&lt;&lt;include&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="ext1" edge="1" parent="1" source="UC5" style="dashed=1;strokeColor=#F0A500;fontSize=9;fontColor=#F0A500;endArrow=open;endFill=0;" target="UC4" value="&lt;&lt;extend&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="ext3" edge="1" parent="1" source="UC10" style="dashed=1;strokeColor=#F0A500;fontSize=9;fontColor=#F0A500;endArrow=open;endFill=0;" target="UC9" value="&lt;&lt;extend&gt;&gt;">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="ext4" edge="1" parent="1" source="UC15" style="dashed=1;strokeColor=#F0A500;fontSize=9;fontColor=#F0A500;endArrow=open;endFill=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="UC5" value="&lt;&lt;extend&gt;&gt;">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1050" y="1720" />
+        </Array>
+        <mxPoint x="431.5844123818406" y="2060.9636394903614" as="sourcePoint" />
+        <mxPoint x="442.2417532971631" y="919.9966485647988" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+  </root>
+</mxGraphModel>
