@@ -25,7 +25,7 @@ It creates a tamper-proof national prescription ledger.
 medaxis-africa/
   frontend/     ← React Vite app
   backend/      ← Node.js Express API
-  docs/         ← diagrams, PDFs, documentation
+  docs/         ← diagrams, PDFs, documentation, designs
   CLAUDE.md
   PRD.md
   DESIGN.md
