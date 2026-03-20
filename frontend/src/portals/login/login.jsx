@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../hooks/use-auth'
+import { MOCK_LOGIN_CREDENTIALS } from '../../utils/mock-data'
 
 const TEAL   = '#0D7C7C'
 const BORDER = '#E5E7EB'
@@ -18,10 +19,20 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState('DOCTOR')
   const [username, setUsername]         = useState('')
   const [password, setPassword]         = useState('')
+  const [roleError, setRoleError]       = useState('')
   const { login, loading, error }       = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setRoleError('')
+    // Check if the entered credentials belong to the selected role before proceeding.
+    const match = MOCK_LOGIN_CREDENTIALS.find(
+      c => c.username.toLowerCase() === username.toLowerCase() && c.password === password
+    )
+    if (match && match.role !== selectedRole) {
+      setRoleError('Invalid credentials for the selected role. Please check your role selection.')
+      return
+    }
     await login(username, password)
   }
 
@@ -96,7 +107,7 @@ export default function LoginPage() {
                     <button
                       key={role.id}
                       type="button"
-                      onClick={() => setSelectedRole(role.id)}
+                      onClick={() => { setSelectedRole(role.id); setRoleError('') }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -136,7 +147,7 @@ export default function LoginPage() {
                     id="cnie"
                     type="text"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => { setUsername(e.target.value); setRoleError('') }}
                     placeholder="Enter ID number"
                     style={{
                       width: '100%',
@@ -179,7 +190,7 @@ export default function LoginPage() {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setRoleError('') }}
                     placeholder="••••••••"
                     style={{
                       width: '100%',
@@ -205,7 +216,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Error */}
+              {/* Auth error (wrong credentials) */}
               {error && (
                 <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>{error}</p>
               )}
@@ -235,6 +246,13 @@ export default function LoginPage() {
                 {loading ? 'Authenticating…' : 'Sign In to MedAxis'}
               </button>
             </form>
+
+            {/* Role mismatch error */}
+            {roleError && (
+              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginTop: 12, marginBottom: 0 }}>
+                {roleError}
+              </p>
+            )}
 
             {/* Encrypted session */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
