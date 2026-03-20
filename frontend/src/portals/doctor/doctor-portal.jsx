@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import { useAuth } from '../../hooks/use-auth'
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const TEAL      = '#0D7C7C'
@@ -27,21 +28,37 @@ const STATUS_CFG = {
 }
 
 const NAV = [
-  { key: 'dashboard',    label: 'Dashboard',        icon: 'dashboard'     },
-  { key: 'prescriptions',label: 'Prescriptions',    icon: 'description'   },
-  { key: 'patients',     label: 'Patient Lookup',   icon: 'person_search' },
-  { key: 'pharmacy',     label: 'Pharmacy Portal',  icon: 'medication'    },
-  { key: 'regulatory',   label: 'Regulatory Stats', icon: 'bar_chart'     },
-  { key: 'logs',         label: 'System Logs',      icon: 'history'       },
+  { key: 'dashboard',     label: 'Dashboard',        icon: 'dashboard'     },
+  { key: 'prescriptions', label: 'My Prescriptions', icon: 'description'   },
+  { key: 'new-rx',        label: 'New Prescription', icon: 'add_circle'    },
+  { key: 'patients',      label: 'Patient Lookup',   icon: 'person_search' },
 ]
 
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function DoctorPortal() {
+  const { logout }                    = useAuth()
   const [activeNav, setActiveNav]     = useState('dashboard')
   const [currentPage, setCurrentPage] = useState(1)
   const [form, setForm]               = useState({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
   const [submitting, setSubmitting]   = useState(false)
   const [success, setSuccess]         = useState(false)
+
+  const leftRef      = useRef(null)
+  const rightInnerRef = useRef(null)
+  const cnieRef      = useRef(null)
+
+  const handleNav = useCallback((key) => {
+    setActiveNav(key)
+    if (key === 'dashboard') {
+      if (leftRef.current)       leftRef.current.scrollTop = 0
+      if (rightInnerRef.current) rightInnerRef.current.scrollTop = 0
+    } else if (key === 'prescriptions') {
+      if (rightInnerRef.current) rightInnerRef.current.scrollTop = 0
+    } else if (key === 'new-rx' || key === 'patients') {
+      if (leftRef.current) leftRef.current.scrollTop = 0
+      setTimeout(() => { if (cnieRef.current) cnieRef.current.focus() }, 50)
+    }
+  }, [])
 
   const totalPages = Math.ceil(TOTAL_RECORDS / 5)
 
@@ -100,12 +117,10 @@ export default function DoctorPortal() {
           </div>
         </div>
 
-        {/* Centre links */}
-        <nav style={{ display: 'flex', gap: 24, fontSize: 13 }}>
-          <span style={{ color: TEAL, fontWeight: 700, cursor: 'pointer', borderBottom: `2px solid ${TEAL}`, paddingBottom: 2 }}>Support</span>
-          <span style={{ color: MUTED, cursor: 'pointer' }}>Directory</span>
-          <span style={{ color: MUTED, cursor: 'pointer' }}>Emergency</span>
-        </nav>
+        {/* Portal label */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: 14, color: MUTED, fontFamily: "'Space Grotesk', sans-serif" }}>Doctor Portal</span>
+        </div>
 
         {/* Right icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -136,7 +151,7 @@ export default function DoctorPortal() {
             {NAV.map(item => {
               const active = activeNav === item.key
               return (
-                <button key={item.key} onClick={() => setActiveNav(item.key)} style={{
+                <button key={item.key} onClick={() => handleNav(item.key)} style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                   padding: '9px 16px',
                   background: active ? TEAL_BG : 'transparent',
@@ -148,8 +163,8 @@ export default function DoctorPortal() {
                   fontFamily: "'Space Grotesk', sans-serif",
                   transition: 'all 0.12s ease',
                 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: active ? TEAL : '#9CA3AF' }}>{item.icon}</span>
-                  {item.label}
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: active ? TEAL : '#9CA3AF', lineHeight: 1 }}>{item.icon}</span>
+                  <span>{item.label}</span>
                 </button>
               )
             })}
@@ -157,24 +172,17 @@ export default function DoctorPortal() {
 
           {/* Bottom actions */}
           <div style={{ padding: '12px 12px 16px', borderTop: `1px solid ${BORDER}` }}>
-            <button style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              padding: '10px 12px', backgroundColor: TEAL, color: WHITE,
-              border: 'none', borderRadius: 5, fontSize: 12, fontWeight: 700,
-              cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em',
-              fontFamily: "'Space Grotesk', sans-serif",
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-              New Prescription
-            </button>
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column' }}>
-              {['Help Center', 'Logout'].map(label => (
-                <button key={label} style={{
-                  background: 'none', border: 'none', textAlign: 'left',
-                  padding: '6px 4px', fontSize: 12, color: MUTED,
-                  cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
-                }}>{label}</button>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <button style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: 12, color: MUTED,
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Help Center</button>
+              <button onClick={logout} style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: 12, color: MUTED,
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Logout</button>
             </div>
           </div>
         </aside>
@@ -196,14 +204,14 @@ export default function DoctorPortal() {
             </p>
           </div>
 
-          {/* Scrollable content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Split panel area */}
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-            {/* Split: form (40%) + table (60%) */}
-            <div style={{ display: 'flex', gap: 20, flex: 1, minHeight: 0 }}>
+            {/* Split: form (38%) + table (62%) */}
+            <div style={{ display: 'flex', gap: 20, flex: 1, overflow: 'hidden', padding: '20px 28px', minHeight: 0 }}>
 
               {/* ── LEFT: New Prescription form ──────────────────────────── */}
-              <div style={{ width: '38%', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div ref={leftRef} style={{ width: '38%', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
 
                 <section style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
                   {/* Section header */}
@@ -225,7 +233,7 @@ export default function DoctorPortal() {
 
                     {/* Patient CNIE */}
                     <Field label="Patient CNIE">
-                      <Input value={form.cnie} onChange={v => setField('cnie', v)} placeholder="e.g. AB123456" />
+                      <Input id="cnie-input" inputRef={cnieRef} value={form.cnie} onChange={v => setField('cnie', v)} placeholder="e.g. AB123456" />
                     </Field>
 
                     {/* Primary Diagnosis */}
@@ -306,7 +314,7 @@ export default function DoctorPortal() {
                 </div>
 
                 {/* Table */}
-                <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div ref={rightInnerRef} style={{ flex: 1, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
                     <colgroup>
                       <col style={{ width: '26%' }} />
@@ -424,9 +432,11 @@ function Field({ label, children, style }) {
   )
 }
 
-function Input({ value, onChange, placeholder, type = 'text', padLeft }) {
+function Input({ value, onChange, placeholder, type = 'text', padLeft, id, inputRef }) {
   return (
     <input
+      id={id}
+      ref={inputRef}
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}

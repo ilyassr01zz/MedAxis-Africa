@@ -1,5 +1,7 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback, memo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../hooks/use-auth'
+import Toast, { useToast } from '../../components/toast'
 
 // ---------------------------------------------------------------------------
 // Mock data — exact values from mockup spec
@@ -60,12 +62,10 @@ const STATUS_CONFIG = {
 // Sidebar nav items
 // ---------------------------------------------------------------------------
 const NAV_ITEMS = [
-  { label: 'Dashboard',         icon: 'dashboard' },
-  { label: 'Prescriptions',     icon: 'description' },
-  { label: 'Patient Lookup',    icon: 'person_search' },
-  { label: 'Pharmacy Portal',   icon: 'local_pharmacy', active: true },
-  { label: 'Regulatory Stats',  icon: 'bar_chart' },
-  { label: 'System Logs',       icon: 'history' },
+  { key: 'dashboard', label: 'Dashboard',       icon: 'dashboard'     },
+  { key: 'queue',     label: 'Active Queue',    icon: 'queue'         },
+  { key: 'lookup',    label: 'Patient Lookup',  icon: 'person_search' },
+  { key: 'history',   label: 'Dispense History',icon: 'history'       },
 ]
 
 // ---------------------------------------------------------------------------
@@ -252,9 +252,29 @@ const PrescriptionRow = memo(function PrescriptionRow({ rx, onDispense }) {
 // ---------------------------------------------------------------------------
 export default function PharmacyPortal() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
+  const { visible: toastVisible, showToast } = useToast()
 
-  const [cnieValue, setCnieValue]   = useState('')
+  const [activeNav, setActiveNav]     = useState('dashboard')
+  const [cnieValue, setCnieValue]     = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+
+  const mainRef      = useRef(null)
+  const queueRef     = useRef(null)
+  const cnieInputRef = useRef(null)
+
+  const handleNav = useCallback((key) => {
+    setActiveNav(key)
+    if (key === 'dashboard') {
+      if (mainRef.current) mainRef.current.scrollTop = 0
+    } else if (key === 'queue') {
+      if (queueRef.current) queueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (key === 'lookup') {
+      setTimeout(() => { if (cnieInputRef.current) cnieInputRef.current.focus() }, 50)
+    } else if (key === 'history') {
+      showToast()
+    }
+  }, [showToast])
 
   const handleFetchRecords = useCallback(() => {
     if (cnieValue.trim()) setCurrentPage(1)
@@ -312,20 +332,10 @@ export default function PharmacyPortal() {
           </span>
         </div>
 
-        {/* Centre nav */}
-        <nav style={{ display: 'flex', gap: 28, flex: 1 }}>
-          {['Support', 'Directory', 'Emergency'].map(item => (
-            <a key={item} href="#" style={{
-              fontSize: '13px', fontWeight: 500, color: '#6B7280',
-              textDecoration: 'none', transition: 'color 0.15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#0D7C7C' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#6B7280' }}
-            >
-              {item}
-            </a>
-          ))}
-        </nav>
+        {/* Portal label */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '14px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>Pharmacy Portal</span>
+        </div>
 
         {/* Right icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -375,35 +385,35 @@ export default function PharmacyPortal() {
 
           {/* Nav items */}
           <nav style={{ padding: '8px 0', flex: 1 }}>
-            {NAV_ITEMS.map(item => (
-              <div
-                key={item.label}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '10px 20px',
-                  borderLeft: item.active ? '3px solid #0D7C7C' : '3px solid transparent',
-                  backgroundColor: item.active ? '#E6F3F3' : 'transparent',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.15s',
-                }}
-                onMouseEnter={e => { if (!item.active) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
-                onMouseLeave={e => { if (!item.active) e.currentTarget.style.backgroundColor = 'transparent' }}
-              >
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 18,
-                  color: item.active ? '#0D7C7C' : '#6B7280',
-                  lineHeight: 1,
-                }}>
-                  {item.icon}
-                </span>
-                <span style={{
-                  fontSize: '13px', fontWeight: item.active ? 700 : 500,
-                  color: item.active ? '#0D7C7C' : '#374151',
-                }}>
-                  {item.label}
-                </span>
-              </div>
-            ))}
+            {NAV_ITEMS.map(item => {
+              const active = activeNav === item.key
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => handleNav(item.key)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '10px 20px',
+                    borderLeft: active ? '3px solid #0D7C7C' : '3px solid transparent',
+                    border: 'none',
+                    backgroundColor: active ? '#E6F3F3' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.15s',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: active ? '#0D7C7C' : '#6B7280', lineHeight: 1 }}>
+                    {item.icon}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: active ? 700 : 500, color: active ? '#0D7C7C' : '#374151' }}>
+                    {item.label}
+                  </span>
+                </button>
+              )
+            })}
           </nav>
 
           {/* Divider */}
@@ -411,46 +421,23 @@ export default function PharmacyPortal() {
 
           {/* Bottom actions */}
           <div style={{ padding: '16px' }}>
-            <button style={{
-              width: '100%', height: '40px',
-              backgroundColor: '#0D7C7C', color: '#FFFFFF',
-              border: 'none', borderRadius: '4px',
-              fontSize: '12px', fontWeight: 700, letterSpacing: '0.02em',
-              cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              transition: 'background-color 0.15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#0A6363' }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#0D7C7C' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-              New Prescription
-            </button>
-
-            <div style={{ marginTop: '4px' }}>
-              {[
-                { label: 'Help Center', icon: 'help' },
-                { label: 'Logout',      icon: 'logout' },
-              ].map(item => (
-                <div key={item.label} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '9px 4px', cursor: 'pointer', color: '#6B7280',
-                  fontSize: '12px', fontWeight: 500,
-                  transition: 'color 0.15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#0D7C7C' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#6B7280' }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 17 }}>{item.icon}</span>
-                  {item.label}
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <button style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: '12px', color: '#6B7280',
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Help Center</button>
+              <button onClick={logout} style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: '12px', color: '#6B7280',
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Logout</button>
             </div>
           </div>
         </aside>
 
         {/* ── Main content ────────────────────────────────────────────────── */}
-        <main style={{
+        <main ref={mainRef} style={{
           flex: 1, overflowY: 'auto',
           padding: '32px',
           display: 'flex', flexDirection: 'column', gap: '24px',
@@ -516,6 +503,7 @@ export default function PharmacyPortal() {
                 </span>
                 <input
                   id="cnie-input"
+                  ref={cnieInputRef}
                   type="text"
                   value={cnieValue}
                   onChange={e => setCnieValue(e.target.value)}
@@ -575,7 +563,7 @@ export default function PharmacyPortal() {
           </div>
 
           {/* ── Active Prescription Queue table card ── */}
-          <div style={{
+          <div ref={queueRef} style={{
             backgroundColor: '#FFFFFF',
             border: '1px solid #E5E7EB', borderRadius: '8px',
             overflow: 'hidden',
@@ -755,6 +743,8 @@ export default function PharmacyPortal() {
 
         </main>
       </div>
+
+      <Toast visible={toastVisible} />
     </div>
   )
 }

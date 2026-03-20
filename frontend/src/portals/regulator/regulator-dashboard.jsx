@@ -1,4 +1,6 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import { useAuth } from '../../hooks/use-auth'
+import Toast, { useToast } from '../../components/toast'
 
 // ---------------------------------------------------------------------------
 // Mock data — exact values from mockup spec
@@ -76,12 +78,11 @@ const TOTAL_ENTRIES = 1284902
 // Sidebar nav items — Dashboard is ACTIVE for regulator
 // ---------------------------------------------------------------------------
 const NAV_ITEMS = [
-  { label: 'Dashboard',        icon: 'dashboard',       active: true },
-  { label: 'Prescriptions',    icon: 'description' },
-  { label: 'Patient Lookup',   icon: 'person_search' },
-  { label: 'Pharmacy Portal',  icon: 'local_pharmacy' },
-  { label: 'Regulatory Stats', icon: 'bar_chart' },
-  { label: 'System Logs',      icon: 'history' },
+  { key: 'dashboard', label: 'Dashboard',       icon: 'dashboard'     },
+  { key: 'table',     label: 'Prescriptions',   icon: 'description'   },
+  { key: 'stats',     label: 'Statistics',      icon: 'bar_chart'     },
+  { key: 'licenses',  label: 'Doctor Licenses', icon: 'verified_user' },
+  { key: 'logs',      label: 'System Logs',     icon: 'history'       },
 ]
 
 // ---------------------------------------------------------------------------
@@ -179,8 +180,29 @@ function LatencyStat({ label, value, highlight }) {
 // Main RegulatorDashboard — full-screen takeover
 // ---------------------------------------------------------------------------
 export default function RegulatorDashboard() {
+  const { logout } = useAuth()
+  const { visible: toastVisible, showToast } = useToast()
+
+  const [activeNav, setActiveNav]       = useState('dashboard')
   const [searchQuery, setSearchQuery]   = useState('')
   const [currentPage]                   = useState(1)
+
+  const mainRef  = useRef(null)
+  const tableRef = useRef(null)
+  const statsRef = useRef(null)
+
+  const handleNav = useCallback((key) => {
+    setActiveNav(key)
+    if (key === 'dashboard') {
+      if (mainRef.current) mainRef.current.scrollTop = 0
+    } else if (key === 'table') {
+      if (tableRef.current) tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (key === 'stats') {
+      if (statsRef.current) statsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (key === 'licenses' || key === 'logs') {
+      showToast()
+    }
+  }, [showToast])
 
   const filteredRows = useMemo(() => {
     if (!searchQuery.trim()) return MOCK_PRESCRIPTIONS
@@ -226,20 +248,10 @@ export default function RegulatorDashboard() {
           <span style={{ fontWeight: 700, fontSize: 16, color: '#0D7C7C', letterSpacing: '-0.02em' }}>MedAxis</span>
         </div>
 
-        {/* Centre nav */}
-        <nav style={{ display: 'flex', gap: 28, flex: 1 }}>
-          {['Support', 'Directory', 'Emergency'].map(item => (
-            <a key={item} href="#" style={{
-              fontSize: 13, fontWeight: 500, color: '#6B7280', textDecoration: 'none',
-              transition: 'color 0.15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#0D7C7C' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#6B7280' }}
-            >
-              {item}
-            </a>
-          ))}
-        </nav>
+        {/* Portal label */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: 14, color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>Regulatory Dashboard</span>
+        </div>
 
         {/* Search bar */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -305,70 +317,51 @@ export default function RegulatorDashboard() {
           <div style={{ height: 1, backgroundColor: '#E5E7EB', margin: '0 16px' }} />
 
           <nav style={{ padding: '8px 0', flex: 1 }}>
-            {NAV_ITEMS.map(item => (
-              <div key={item.label} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 20px',
-                borderLeft: item.active ? '3px solid #0D7C7C' : '3px solid transparent',
-                backgroundColor: item.active ? '#E6F3F3' : 'transparent',
-                cursor: 'pointer', transition: 'background-color 0.15s',
-              }}
-                onMouseEnter={e => { if (!item.active) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
-                onMouseLeave={e => { if (!item.active) e.currentTarget.style.backgroundColor = 'transparent' }}
-              >
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 18, lineHeight: 1,
-                  color: item.active ? '#0D7C7C' : '#6B7280',
-                }}>
-                  {item.icon}
-                </span>
-                <span style={{
-                  fontSize: 13, fontWeight: item.active ? 700 : 500,
-                  color: item.active ? '#0D7C7C' : '#374151',
-                }}>
-                  {item.label}
-                </span>
-              </div>
-            ))}
+            {NAV_ITEMS.map(item => {
+              const active = activeNav === item.key
+              return (
+                <button key={item.key} onClick={() => handleNav(item.key)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 20px',
+                  borderLeft: active ? '3px solid #0D7C7C' : '3px solid transparent',
+                  border: 'none',
+                  backgroundColor: active ? '#E6F3F3' : 'transparent',
+                  cursor: 'pointer', transition: 'background-color 0.15s',
+                  fontFamily: "'Space Grotesk', sans-serif", textAlign: 'left',
+                }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1, color: active ? '#0D7C7C' : '#6B7280' }}>
+                    {item.icon}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#0D7C7C' : '#374151' }}>
+                    {item.label}
+                  </span>
+                </button>
+              )
+            })}
           </nav>
 
           <div style={{ height: 1, backgroundColor: '#E5E7EB', margin: '0 16px' }} />
           <div style={{ padding: 16 }}>
-            <button style={{
-              width: '100%', height: 40,
-              backgroundColor: '#0D7C7C', color: '#FFFFFF',
-              border: 'none', borderRadius: 4,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              fontFamily: "'Space Grotesk', sans-serif",
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              transition: 'background-color 0.15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#0A6363' }}
-              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#0D7C7C' }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-              New Prescription
-            </button>
-            <div style={{ marginTop: 4 }}>
-              {[{ label: 'Help Center', icon: 'help' }, { label: 'Logout', icon: 'logout' }].map(item => (
-                <div key={item.label} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 4px', cursor: 'pointer', color: '#6B7280',
-                  fontSize: 12, fontWeight: 500, transition: 'color 0.15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#0D7C7C' }}
-                  onMouseLeave={e => { e.currentTarget.style.color = '#6B7280' }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 17 }}>{item.icon}</span>
-                  {item.label}
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <button style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: 12, color: '#6B7280',
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Help Center</button>
+              <button onClick={logout} style={{
+                background: 'none', border: 'none', textAlign: 'left',
+                padding: '6px 4px', fontSize: 12, color: '#6B7280',
+                cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+              }}>Logout</button>
             </div>
           </div>
         </aside>
 
         {/* ── Main content ────────────────────────────────────────────────── */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
           {/* ── Page header ── */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -574,7 +567,7 @@ export default function RegulatorDashboard() {
           </div>
 
           {/* ── Data table card ── */}
-          <div style={{
+          <div ref={tableRef} style={{
             backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
             borderRadius: 8, overflow: 'hidden',
           }}>
@@ -704,7 +697,7 @@ export default function RegulatorDashboard() {
           </div>
 
           {/* ── Bottom two charts side by side ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, paddingBottom: 8 }}>
+          <div ref={statsRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, paddingBottom: 8 }}>
 
             {/* LEFT — Prescription Density by Region (CSS bar chart) */}
             <div style={{
@@ -818,6 +811,8 @@ export default function RegulatorDashboard() {
 
         </main>
       </div>
+
+      <Toast visible={toastVisible} />
     </div>
   )
 }
