@@ -96,8 +96,8 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['PHARMACIST']} />}>
             <Route element={<Layout />}>
               <Route path="/pharmacy" element={<PharmacyPortal />} />
-              <Route path="/pharmacy/verify/:rxId" element={<VerificationScreen />} />
             </Route>
+            <Route path="/pharmacy/verify/:rxId" element={<VerificationScreen />} />
           </Route>
 
           {/* ----------------------------------------------------------------
