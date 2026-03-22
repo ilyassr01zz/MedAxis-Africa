@@ -1,0 +1,4 @@
+node_modules/
+.env
+prisma/medaxis.db
+prisma/medaxis.db-journal

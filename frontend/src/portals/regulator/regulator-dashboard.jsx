@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../../hooks/use-auth'
 import Toast, { useToast } from '../../components/toast'
+import { getRegulatorStatsAPI } from '../../api/regulator'
 
 // ---------------------------------------------------------------------------
 // Mock data — exact values from mockup spec
@@ -180,12 +181,26 @@ function LatencyStat({ label, value, highlight }) {
 // Main RegulatorDashboard — full-screen takeover
 // ---------------------------------------------------------------------------
 export default function RegulatorDashboard() {
-  const { logout } = useAuth()
+  const { logout, token } = useAuth()
   const { visible: toastVisible, showToast } = useToast()
 
   const [activeNav, setActiveNav]       = useState('dashboard')
   const [searchQuery, setSearchQuery]   = useState('')
   const [currentPage]                   = useState(1)
+  const [stats, setStats]               = useState(null)
+
+  useEffect(() => {
+    if (!token) return
+    const loadStats = async () => {
+      try {
+        const result = await getRegulatorStatsAPI(token)
+        if (result.success) setStats(result.data)
+      } catch (err) {
+        console.error('Failed to load regulator stats:', err)
+      }
+    }
+    loadStats()
+  }, [token])
 
   const mainRef  = useRef(null)
   const tableRef = useRef(null)
@@ -204,16 +219,28 @@ export default function RegulatorDashboard() {
     }
   }, [showToast])
 
+  const prescriptionRows = stats?.prescriptions
+    ? stats.prescriptions.map(rx => ({
+        id:          rx.rx_id || rx.rxId || rx.id,
+        practitioner: rx.doctorName || rx.doctor?.user?.first_name ? `Dr. ${rx.doctor?.user?.first_name}` : 'Unknown',
+        facility:    rx.facility || rx.doctor?.facility || '—',
+        region:      rx.region || '—',
+        status:      rx.status,
+        date:        rx.created_at || rx.issuedAt,
+        issuedAt:    rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+      }))
+    : MOCK_PRESCRIPTIONS
+
   const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return MOCK_PRESCRIPTIONS
+    if (!searchQuery.trim()) return prescriptionRows
     const q = searchQuery.toLowerCase()
-    return MOCK_PRESCRIPTIONS.filter(r =>
-      r.id.toLowerCase().includes(q) ||
-      r.practitioner.toLowerCase().includes(q) ||
-      r.facility.toLowerCase().includes(q) ||
-      r.region.toLowerCase().includes(q)
+    return prescriptionRows.filter(r =>
+      (r.id || '').toLowerCase().includes(q) ||
+      (r.practitioner || '').toLowerCase().includes(q) ||
+      (r.facility || '').toLowerCase().includes(q) ||
+      (r.region || '').toLowerCase().includes(q)
     )
-  }, [searchQuery])
+  }, [searchQuery, prescriptionRows])
 
   const handleSearchChange = useCallback(e => setSearchQuery(e.target.value), [])
 
@@ -436,8 +463,8 @@ export default function RegulatorDashboard() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
                   Total Prescriptions
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
-                  1,284,902
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {stats ? (stats.total || stats.totalPrescriptions || '—').toLocaleString() : '1,284,902'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#0D7C7C' }}>↗ 12.4% vs last month</div>
               </div>
@@ -468,8 +495,8 @@ export default function RegulatorDashboard() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
                   Registered Doctors
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
-                  42,150
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {stats ? (stats.doctors || stats.registeredDoctors || '—').toLocaleString() : '42,150'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280' }}>👤 892 new registrations</div>
               </div>
@@ -500,8 +527,8 @@ export default function RegulatorDashboard() {
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
                   Active Pharmacies
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4 }}>
-                  18,294
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {stats ? (stats.pharmacies || stats.activePharmacies || '—').toLocaleString() : '18,294'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#0D7C7C' }}>✓ 99.8% compliance rate</div>
               </div>

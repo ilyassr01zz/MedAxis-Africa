@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../../hooks/use-auth'
+import { getMyPrescriptionsAPI, createPrescriptionAPI } from '../../api/prescriptions'
+import { searchPatientAPI } from '../../api/patients'
+import { hashCNIE } from '../../utils/hash.utils'
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const TEAL      = '#0D7C7C'
@@ -60,22 +63,54 @@ const NAV = [
 
 // ─── Main component ──────────────────────────────────────────────────────────
 export default function DoctorPortal() {
-  const { logout } = useAuth()
+  const { logout, token, user } = useAuth()
 
   const [activeView, setActiveView]           = useState('dashboard')
   const [currentPage, setCurrentPage]         = useState(1)
   const [form, setForm]                       = useState({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
   const [submitting, setSubmitting]           = useState(false)
   const [successRxId, setSuccessRxId]         = useState(null)
+  const [successExpiry, setSuccessExpiry]     = useState(null)
   const [dashSuccess, setDashSuccess]         = useState(false)
   const [patientQuery, setPatientQuery]       = useState('')
   const [patientSearched, setPatientSearched] = useState(false)
+  const [patientResult, setPatientResult]     = useState(null)
+  const [patientError, setPatientError]       = useState('')
+  const [searchLoading, setSearchLoading]     = useState(false)
+  const [formError, setFormError]             = useState('')
+  const [prescriptions, setPrescriptions]     = useState(PRESCRIPTIONS)
   const [syncMinutes, setSyncMinutes]         = useState(2)
 
   useEffect(() => {
     const interval = setInterval(() => setSyncMinutes(prev => prev + 1), 60000)
     return () => clearInterval(interval)
   }, [])
+
+  // Load real prescriptions on mount
+  useEffect(() => {
+    if (!token) return
+    const load = async () => {
+      try {
+        const result = await getMyPrescriptionsAPI(token)
+        if (result.success && Array.isArray(result.data)) {
+          const mapped = result.data.map(rx => ({
+            rxId:    rx.rxId || rx.rx_id,
+            patient: rx.patientFirstName || rx.patientToken || 'Patient',
+            med:     rx.drugName || rx.drug_name || rx.medication || '',
+            dose:    rx.dosage || '',
+            date:    rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
+            expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
+            status:  rx.status || 'ACTIVE',
+          }))
+          setPrescriptions(mapped.length > 0 ? mapped : PRESCRIPTIONS)
+        }
+      } catch (err) {
+        // Fall back to mock data if backend unavailable
+        console.error('Failed to load prescriptions:', err)
+      }
+    }
+    load()
+  }, [token])
 
   const leftRef       = useRef(null)
   const rightInnerRef = useRef(null)
@@ -114,36 +149,93 @@ export default function DoctorPortal() {
   const resetForm = useCallback(() => {
     setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
     setSuccessRxId(null)
+    setSuccessExpiry(null)
     setDashSuccess(false)
   }, [])
+
+  // Shared prescription creation logic
+  const submitPrescription = useCallback(async () => {
+    if (!form.cnie || !form.medication || !form.dosage || !form.duration) return null
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const cnie_hash = await hashCNIE(form.cnie)
+      const result = await createPrescriptionAPI(token, {
+        patient_cnie_hash: cnie_hash,
+        drug_code: form.medication,
+        drug_name: form.medication,
+        dosage: form.dosage,
+        frequency: 'As prescribed',
+        duration_days: parseInt(form.duration, 10),
+      })
+      if (result.success) {
+        // Reload prescriptions list
+        try {
+          const updated = await getMyPrescriptionsAPI(token)
+          if (updated.success && Array.isArray(updated.data)) {
+            const mapped = updated.data.map(rx => ({
+              rxId:    rx.rxId || rx.rx_id,
+              patient: rx.patientFirstName || rx.patientToken || 'Patient',
+              med:     rx.drugName || rx.drug_name || rx.medication || '',
+              dose:    rx.dosage || '',
+              date:    rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
+              expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
+              status:  rx.status || 'ACTIVE',
+            }))
+            if (mapped.length > 0) setPrescriptions(mapped)
+          }
+        } catch (_) { /* keep existing list */ }
+        return result.data.rxId || result.data.rx_id || ('RJ-' + Math.floor(100000 + Math.random() * 900000))
+      }
+    } catch (err) {
+      setFormError(err.response?.data?.error || err.message || 'Failed to create prescription')
+    } finally {
+      setSubmitting(false)
+    }
+    return null
+  }, [form, token])
 
   // Dashboard split-view submit → mini success banner
   const handleDashSubmit = useCallback(async (e) => {
     e.preventDefault()
-    if (!form.cnie || !form.medication || !form.dosage || !form.duration) return
-    setSubmitting(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSubmitting(false)
-    setDashSuccess(true)
-    setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
-    setTimeout(() => setDashSuccess(false), 3000)
-  }, [form])
+    const rxId = await submitPrescription()
+    if (rxId) {
+      setDashSuccess(true)
+      setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+      setTimeout(() => setDashSuccess(false), 3000)
+    }
+  }, [submitPrescription])
 
   // Full-width new-rx submit → success card
   const handleNewRxSubmit = useCallback(async (e) => {
     e.preventDefault()
-    if (!form.cnie || !form.medication || !form.dosage || !form.duration) return
-    setSubmitting(true)
-    await new Promise(r => setTimeout(r, 800))
-    setSubmitting(false)
-    const rxId = 'RJ-' + Math.floor(100000 + Math.random() * 900000)
-    setSuccessRxId(rxId)
-    setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
-  }, [form])
+    const days = parseInt(form.duration, 10) || 0
+    const rxId = await submitPrescription()
+    if (rxId) {
+      const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+      setSuccessExpiry(expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+      setSuccessRxId(rxId)
+      setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+    }
+  }, [submitPrescription, form.duration])
 
-  const handlePatientSearch = useCallback(() => {
-    if (patientQuery.trim()) setPatientSearched(true)
-  }, [patientQuery])
+  const handlePatientSearch = useCallback(async () => {
+    if (!patientQuery.trim()) return
+    setSearchLoading(true)
+    setPatientError('')
+    try {
+      const result = await searchPatientAPI(token, patientQuery)
+      if (result.success) {
+        setPatientResult(result.data)
+        setPatientSearched(true)
+      }
+    } catch (err) {
+      setPatientError(err.response?.data?.error || 'Patient not found')
+      setPatientSearched(true)
+    } finally {
+      setSearchLoading(false)
+    }
+  }, [patientQuery, token])
 
   const issueForPatient = useCallback(() => {
     setForm(f => ({ ...f, cnie: patientQuery }))
@@ -386,7 +478,7 @@ export default function DoctorPortal() {
                     ))}
                   </div>
                 </div>
-                <RxTable expanded />
+                <RxTable expanded prescriptions={prescriptions} />
                 <RxPagination currentPage={currentPage} totalPages={totalPages} pages={pages} onPageChange={setCurrentPage} total={TOTAL_RECORDS} />
               </section>
             </div>
@@ -409,8 +501,23 @@ export default function DoctorPortal() {
                       <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#16A34A' }}>check_circle</span>
                     </div>
                     <h2 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: '0 0 12px', letterSpacing: '-0.01em' }}>Prescription Authorized</h2>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: TEAL, marginBottom: 12 }}>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: TEAL, marginBottom: 20 }}>
                       RxID: {successRxId}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 20 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: 10, fontWeight: 600, color: MUTED, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 4px 0' }}>ISSUE DATE</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: TEXT, margin: 0 }}>
+                          {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div style={{ width: 1, backgroundColor: BORDER }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: 10, fontWeight: 600, color: MUTED, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 4px 0' }}>EXPIRY DATE</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: TEXT, margin: 0 }}>
+                          {successExpiry || '—'}
+                        </p>
+                      </div>
                     </div>
                     <p style={{ fontSize: 13, color: MUTED, marginBottom: 32, lineHeight: 1.6 }}>
                       Prescription has been stored in the National Prescription Ledger
@@ -477,6 +584,9 @@ export default function DoctorPortal() {
                         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>shield</span>
                         {submitting ? 'Authorizing…' : 'Authorize & Print'}
                       </button>
+                      {formError && (
+                        <p style={{ fontSize: 13, color: '#E53E3E', margin: 0, textAlign: 'center' }}>{formError}</p>
+                      )}
                     </form>
                   </section>
                 )}
@@ -536,7 +646,10 @@ export default function DoctorPortal() {
 
                 {/* Result */}
                 {patientSearched && (
-                  <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '20px 24px' }}>
+                  <div style={{ backgroundColor: WHITE, border: `1px solid ${patientError ? '#E53E3E' : BORDER}`, borderRadius: 8, padding: '20px 24px' }}>
+                    {patientError ? (
+                      <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{patientError}</p>
+                    ) : (
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -544,18 +657,18 @@ export default function DoctorPortal() {
                             <span className="material-symbols-outlined" style={{ fontSize: 22, color: TEAL }}>person</span>
                           </div>
                           <div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{MOCK_PATIENT.firstName}</div>
-                            <div style={{ fontSize: 12, color: MUTED, fontFamily: "'JetBrains Mono', monospace" }}>{MOCK_PATIENT.token}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{patientResult?.firstName || MOCK_PATIENT.firstName}</div>
+                            <div style={{ fontSize: 12, color: MUTED, fontFamily: "'JetBrains Mono', monospace" }}>{patientResult?.token || MOCK_PATIENT.token}</div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 32 }}>
                           <div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Active Prescriptions</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: TEAL }}>{MOCK_PATIENT.activePrescriptions} active prescriptions</div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Patient ID</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: TEAL }}>{patientResult?.patientId || 'Verified'}</div>
                           </div>
                           <div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Last Prescription</div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT }}>Last prescription: {MOCK_PATIENT.lastDate}</div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Insurance</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: TEXT }}>{patientResult?.insuranceId || 'On file'}</div>
                           </div>
                         </div>
                       </div>
@@ -570,6 +683,7 @@ export default function DoctorPortal() {
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
                       >Issue Prescription for this Patient</button>
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -609,7 +723,8 @@ export default function DoctorPortal() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function RxTable({ compact, expanded }) {
+function RxTable({ compact, expanded, prescriptions: rows }) {
+  const data = rows || PRESCRIPTIONS
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: compact ? 'fixed' : 'auto' }}>
       {compact && (
@@ -632,7 +747,7 @@ function RxTable({ compact, expanded }) {
         </tr>
       </thead>
       <tbody>
-        {PRESCRIPTIONS.map((rx, i) => {
+        {data.map((rx, i) => {
           const cfg = STATUS_CFG[rx.status] || {}
           return (
             <tr key={rx.rxId}

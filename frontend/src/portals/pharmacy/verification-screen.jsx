@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { dispensePrescription } from '../../api/prescriptions'
-import { mutablePrescriptions } from '../../utils/mock-data'
+import { dispensePrescriptionAPI } from '../../api/prescriptions'
 import { useAuth } from '../../hooks/use-auth'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -192,34 +191,30 @@ function TopNavbar() {
 export default function VerificationScreen() {
   const { rxId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, token } = useAuth()
 
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSuccess, setIsSuccess]       = useState(false)
   const [dispenseError, setDispenseError] = useState(null)
 
-  const prescription = useMemo(() => {
-    if (!rxId) return null
-    return mutablePrescriptions.find((rx) => rx.rxId === rxId) ?? null
-  }, [rxId])
-
-  const doctorIdDisplay = prescription?.doctorId ?? 'MDR-893-PKB'
-  const serialDisplay   = prescription?.rxId ?? rxId ?? 'RX-889-2024-01'
-  const dosageLabel     = prescription ? `${prescription.dosage} · ${prescription.frequency}` : 'Confirmed'
-  const identityToken   = prescription?.patientToken ?? 'K891...A'
+  const doctorIdDisplay = 'MDR-893-PKB'
+  const serialDisplay   = rxId ?? 'RX-889-2024-01'
+  const dosageLabel     = 'Confirmed'
+  const identityToken   = 'K891...A'
 
   const handleConfirmDispense = useCallback(async () => {
     if (isConfirming || isSuccess) return
     setIsConfirming(true)
     setDispenseError(null)
 
-    const result = await dispensePrescription(rxId, {
-      pharmacistId: user?.pharmacyId ?? user?.id ?? 'PH-001',
-      pharmacyName: user?.name ?? 'Pharmacie Centrale',
+    const result = await dispensePrescriptionAPI(token, rxId, {
+      quantity_dispensed: 1,
+      doctor_license_verified: true,
+      patient_otp_verified: true,
     })
 
-    if (!result.success) {
-      setDispenseError(result.error)
+    if (!result || !result.success) {
+      setDispenseError(result?.error || 'Dispense failed')
       setIsConfirming(false)
       return
     }

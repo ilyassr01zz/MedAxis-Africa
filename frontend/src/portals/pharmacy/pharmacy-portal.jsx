@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/use-auth'
 import Toast, { useToast } from '../../components/toast'
+import { getByPatientCNIEAPI } from '../../api/prescriptions'
+import { hashCNIE } from '../../utils/hash.utils'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const TEAL      = '#0D7C7C'
@@ -65,10 +67,15 @@ const HISTORY_ROWS = [
 ]
 
 const STATUS_CONFIG = {
-  VALID:     { color: '#16A34A', label: 'VALID'      },
-  PENDING:   { color: ORANGE,    label: 'PENDING'    },
-  EXPIRED:   { color: '#E53E3E', label: 'EXPIRED'    },
-  DISPENSED: { color: '#16A34A', label: 'DISPENSED'  },
+  VALID:              { color: '#16A34A', label: 'VALID'      },
+  ACTIVE:             { color: '#16A34A', label: 'VALID'      },
+  PENDING:            { color: ORANGE,    label: 'PENDING'    },
+  PARTIAL:            { color: ORANGE,    label: 'PARTIAL'    },
+  PARTIALLY_DISPENSED:{ color: ORANGE,    label: 'PARTIAL'    },
+  EXPIRED:            { color: '#E53E3E', label: 'EXPIRED'    },
+  FLAGGED:            { color: '#E53E3E', label: 'FLAGGED'    },
+  DISPENSED:          { color: MUTED,     label: 'DISPENSED'  },
+  CANCELLED:          { color: MUTED,     label: 'CANCELLED'  },
 }
 
 const NAV_ITEMS = [
@@ -184,14 +191,19 @@ function Pagination({ current, total, onPrev, onNext, label }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PharmacyPortal() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logout, token } = useAuth()
   const { visible: toastVisible, showToast } = useToast()
 
-  const [activeView, setActiveView]         = useState('dashboard')
-  const [cnieValue, setCnieValue]           = useState('')
-  const [recordsFetched, setRecordsFetched] = useState(false)
-  const [queuePage, setQueuePage]           = useState(1)
-  const [historyPage, setHistoryPage]       = useState(1)
+  const [activeView, setActiveView]               = useState('dashboard')
+  const [cnieValue, setCnieValue]                 = useState('')
+  const [recordsFetched, setRecordsFetched]       = useState(false)
+  const [fetchLoading, setFetchLoading]           = useState(false)
+  const [fetchError, setFetchError]               = useState('')
+  const [patientPrescriptions, setPatientPrescriptions] = useState(PATIENT_PRESCRIPTIONS)
+  const [patientToken, setPatientToken]           = useState('PAT-**-8821')
+  const [patientFirstName, setPatientFirstName]   = useState('Ahmed')
+  const [queuePage, setQueuePage]                 = useState(1)
+  const [historyPage, setHistoryPage]             = useState(1)
 
   const cnieInputRef = useRef(null)
 
@@ -206,9 +218,47 @@ export default function PharmacyPortal() {
     }
   }, [showToast])
 
-  const handleFetchRecords = useCallback(() => {
-    if (cnieValue.trim()) setRecordsFetched(true)
-  }, [cnieValue])
+  const handleFetchRecords = useCallback(async () => {
+    if (!cnieValue.trim()) return
+    console.log('Fetching records for CNIE:', cnieValue)
+    console.log('Token available:', !!token)
+    console.log('API URL:', import.meta.env.VITE_API_URL)
+    setFetchLoading(true)
+    setFetchError('')
+    try {
+      const cnie_hash = await hashCNIE(cnieValue)
+      const result = await getByPatientCNIEAPI(token, cnie_hash)
+      console.log('API result:', result)
+      if (result.success && Array.isArray(result.data?.prescriptions)) {
+        const mapped = result.data.prescriptions.map(rx => ({
+          rxId:     rx.rx_id || rx.id,
+          doctor:   rx.doctor?.user?.first_name ? `Dr. ${rx.doctor.user.first_name}` : 'Unknown Doctor',
+          specialty: rx.doctor?.specialty || '',
+          med:      rx.drug_name || '',
+          issued:   rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+          expiry:   rx.expiry_date ? new Date(rx.expiry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+          status:   rx.status === 'ACTIVE' ? 'VALID'
+                  : rx.status === 'PARTIALLY_DISPENSED' ? 'PARTIAL'
+                  : rx.status,
+        }))
+        setPatientPrescriptions(mapped)
+        setPatientToken(result.data.patient_token || 'PAT-**-????')
+        setPatientFirstName(result.data.patient_first_name || 'Patient')
+        setRecordsFetched(true)
+      } else if (result.success) {
+        setPatientPrescriptions([])
+        setPatientToken(result.data?.patient_token || 'PAT-**-????')
+        setPatientFirstName(result.data?.patient_first_name || 'Patient')
+        setRecordsFetched(true)
+      }
+    } catch (err) {
+      setFetchError(err.response?.data?.error || err.message || 'Patient not found')
+      setPatientPrescriptions([])
+      setRecordsFetched(false)
+    } finally {
+      setFetchLoading(false)
+    }
+  }, [cnieValue, token])
 
   const handleDispense = useCallback((rxId) => {
     navigate(`/pharmacy/verify/${rxId}`)
@@ -476,18 +526,18 @@ export default function PharmacyPortal() {
                       onBlur={e  => { e.currentTarget.style.borderColor = BORDER }}
                     />
                   </div>
-                  <button onClick={handleFetchRecords} style={{
+                  <button onClick={handleFetchRecords} disabled={fetchLoading} style={{
                     width: 180, height: 56, flexShrink: 0,
-                    backgroundColor: TEAL, color: WHITE,
+                    backgroundColor: fetchLoading ? '#5AADAD' : TEAL, color: WHITE,
                     border: 'none', borderRadius: 4,
                     fontSize: 12, fontWeight: 700, letterSpacing: '0.07em',
-                    cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+                    cursor: fetchLoading ? 'not-allowed' : 'pointer', fontFamily: "'Space Grotesk', sans-serif",
                     transition: 'background-color 0.15s',
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_DARK }}
-                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
+                    onMouseEnter={e => { if (!fetchLoading) e.currentTarget.style.backgroundColor = TEAL_DARK }}
+                    onMouseLeave={e => { if (!fetchLoading) e.currentTarget.style.backgroundColor = fetchLoading ? '#5AADAD' : TEAL }}
                   >
-                    FETCH RECORDS
+                    {fetchLoading ? 'FETCHING...' : 'FETCH RECORDS'}
                   </button>
                 </div>
 
@@ -503,6 +553,13 @@ export default function PharmacyPortal() {
                 </div>
               </div>
 
+              {/* Error from fetch */}
+              {fetchError && (
+                <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #E53E3E', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                  <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{fetchError}</p>
+                </div>
+              )}
+
               {/* Results — shown after FETCH */}
               {recordsFetched && (
                 <>
@@ -514,8 +571,8 @@ export default function PharmacyPortal() {
                       </div>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: TEAL, marginBottom: 3 }}>Patient Identified</div>
-                        <div style={{ fontSize: 12, color: MUTED, fontFamily: "'JetBrains Mono', monospace" }}>Identity token: PAT-**-8821</div>
-                        <div style={{ fontSize: 12, color: MUTED }}>First name: Ahmed</div>
+                        <div style={{ fontSize: 12, color: MUTED, fontFamily: "'JetBrains Mono', monospace" }}>Identity token: {patientToken}</div>
+                        <div style={{ fontSize: 12, color: MUTED }}>First name: {patientFirstName}</div>
                       </div>
                     </div>
                     <div style={{
@@ -532,14 +589,14 @@ export default function PharmacyPortal() {
                   {/* Active Prescriptions Table */}
                   <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 20px 12px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>Active Prescriptions</span>
-                      <span style={{ backgroundColor: '#E6F3F3', color: TEAL, fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px' }}>4 found</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>Prescriptions</span>
+                      <span style={{ backgroundColor: '#E6F3F3', color: TEAL, fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px' }}>{patientPrescriptions.length} found</span>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <TableHeader columns={['PRESCRIPTION ID', 'DOCTOR NAME', 'MEDICATION', 'DATE ISSUED', 'EXPIRY', 'STATUS', 'ACTIONS']} />
                         <tbody>
-                          {PATIENT_PRESCRIPTIONS.map((rx, i) => (
+                          {patientPrescriptions.map((rx, i) => (
                             <tr key={rx.rxId} style={{ borderBottom: '1px solid #F3F4F6', height: 72, backgroundColor: i % 2 === 0 ? WHITE : '#FAFAFA' }}>
                               <td style={{ padding: '0 16px', verticalAlign: 'middle' }}>
                                 <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600, color: TEAL }}>#{rx.rxId}</span>
@@ -555,7 +612,7 @@ export default function PharmacyPortal() {
                                 <StatusDot status={rx.status} />
                               </td>
                               <td style={{ padding: '0 16px', verticalAlign: 'middle' }}>
-                                {rx.status === 'VALID' && (
+                                {(rx.status === 'VALID' || rx.status === 'PARTIAL') && (
                                   <button onClick={() => handleDispense(rx.rxId)} style={{
                                     height: 34, padding: '0 14px',
                                     backgroundColor: TEAL, color: WHITE,
@@ -570,19 +627,7 @@ export default function PharmacyPortal() {
                                     DISPENSE
                                   </button>
                                 )}
-                                {rx.status === 'PENDING' && (
-                                  <button style={{
-                                    height: 34, padding: '0 12px',
-                                    backgroundColor: WHITE, color: ORANGE,
-                                    border: `1px solid ${ORANGE}`, borderRadius: 4,
-                                    fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-                                    cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
-                                    whiteSpace: 'nowrap',
-                                  }}>
-                                    VERIFY INSURANCE
-                                  </button>
-                                )}
-                                {rx.status === 'EXPIRED' && (
+                                {(rx.status === 'DISPENSED' || rx.status === 'CANCELLED' || rx.status === 'EXPIRED' || rx.status === 'FLAGGED') && (
                                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.05em' }}>ARCHIVED</span>
                                 )}
                               </td>
@@ -592,7 +637,7 @@ export default function PharmacyPortal() {
                       </table>
                     </div>
                     <div style={{ padding: '10px 20px', borderTop: `1px solid ${BORDER}`, backgroundColor: '#FAFAFA' }}>
-                      <span style={{ fontSize: 12, color: MUTED }}>Showing 4 active prescriptions for this patient</span>
+                      <span style={{ fontSize: 12, color: MUTED }}>Showing {patientPrescriptions.length} prescription{patientPrescriptions.length !== 1 ? 's' : ''} for this patient</span>
                     </div>
                   </div>
                 </>
