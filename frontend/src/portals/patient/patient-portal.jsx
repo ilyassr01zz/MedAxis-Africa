@@ -1,4 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import axios from 'axios'
+import { useAuth } from '../../hooks/use-auth'
+import { getPatientViewAPI } from '../../api/prescriptions'
 
 // ─── Inline SVG icons ──────────────────────────────────────────────────────────
 
@@ -66,6 +69,14 @@ const STATUS_CONFIG = {
     buttonLabel: 'View PDF',
     ButtonIcon: PdfIcon,
   },
+  DISPENSED: {
+    label: 'COMPLETED',
+    borderColor: '#6B7280',
+    dotColor: '#6B7280',
+    buttonColor: '#6B7280',
+    buttonLabel: 'History',
+    ButtonIcon: HistoryIcon,
+  },
   COMPLETED: {
     label: 'COMPLETED',
     borderColor: '#6B7280',
@@ -73,6 +84,22 @@ const STATUS_CONFIG = {
     buttonColor: '#6B7280',
     buttonLabel: 'History',
     ButtonIcon: HistoryIcon,
+  },
+  CANCELLED: {
+    label: 'CANCELLED',
+    borderColor: '#6B7280',
+    dotColor: '#6B7280',
+    buttonColor: '#6B7280',
+    buttonLabel: 'History',
+    ButtonIcon: HistoryIcon,
+  },
+  PARTIALLY_DISPENSED: {
+    label: 'PARTIALLY FILLED',
+    borderColor: '#F0A500',
+    dotColor: '#F0A500',
+    buttonColor: '#F0A500',
+    buttonLabel: 'Request Refill',
+    ButtonIcon: RefillIcon,
   },
   PENDING: {
     label: 'PENDING RENEWAL',
@@ -84,6 +111,22 @@ const STATUS_CONFIG = {
   },
   EXPIRED: {
     label: 'EXPIRED RECORD',
+    borderColor: '#E53E3E',
+    dotColor: '#E53E3E',
+    buttonColor: '#E53E3E',
+    buttonLabel: 'Urgent Consult',
+    ButtonIcon: UrgentIcon,
+  },
+  FLAGGED: {
+    label: 'FLAGGED',
+    borderColor: '#E53E3E',
+    dotColor: '#E53E3E',
+    buttonColor: '#E53E3E',
+    buttonLabel: 'Urgent Consult',
+    ButtonIcon: UrgentIcon,
+  },
+  DISPUTED: {
+    label: 'DISPUTED',
     borderColor: '#E53E3E',
     dotColor: '#E53E3E',
     buttonColor: '#E53E3E',
@@ -139,7 +182,7 @@ const FILTER_OPTIONS = ['All', 'Active', 'Completed', 'Pending', 'Expired']
 // ─── PrescriptionCard ──────────────────────────────────────────────────────────
 
 const PrescriptionCard = ({ prescription, onAction }) => {
-  const config = STATUS_CONFIG[prescription.status]
+  const config = STATUS_CONFIG[prescription.status] || STATUS_CONFIG.ACTIVE
   const { ButtonIcon } = config
 
   return (
@@ -271,13 +314,51 @@ const PrescriptionCard = ({ prescription, onAction }) => {
 // ─── Main PatientPortal ────────────────────────────────────────────────────────
 
 export default function PatientPortal() {
+  const { token, logout } = useAuth()
   const [searchQuery, setSearchQuery]           = useState('')
   const [activeFilter, setActiveFilter]         = useState('All')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [visibleCount, setVisibleCount]         = useState(4)
+  const [prescriptionList, setPrescriptionList] = useState([])
+
+  useEffect(() => {
+    if (!token) return
+    // Debug endpoint — temporary
+    axios.get(`${import.meta.env.VITE_API_URL}/patients/debug-patient`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => console.log('DEBUG PATIENT:', JSON.stringify(r.data, null, 2)))
+      .catch(e => console.warn('debug-patient failed:', e.message))
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+    const loadHistory = async () => {
+      console.log('Patient portal loading, token:', !!token)
+      try {
+        const result = await getPatientViewAPI(token)
+        console.log('Patient view result:', result)
+        if (result.success && result.data?.prescriptions) {
+          const mapped = result.data.prescriptions.map(rx => ({
+            id:           rx.rx_id || rx.rxId || rx.id,
+            status:       rx.status || 'ACTIVE',
+            drug:         rx.drug_name || rx.drugName || '',
+            details:      [rx.dosage, rx.frequency, rx.duration_days ? `${rx.duration_days} days` : null].filter(Boolean).join(' • '),
+            prescribedBy: rx.doctor?.user?.first_name ? `Dr. ${rx.doctor.user.first_name}` : rx.doctorName || 'Unknown Doctor',
+            date:         rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+            dateLabel:    rx.status === 'ACTIVE' ? 'DATE ISSUED' : rx.status === 'EXPIRED' ? 'EXPIRY DATE' : 'DATE ISSUED',
+          }))
+          setPrescriptionList(mapped)
+          console.log('Set prescriptions:', mapped.length)
+        }
+      } catch (err) {
+        console.error('Patient portal load error:', err)
+      }
+    }
+    loadHistory()
+  }, [token])
 
   const filteredPrescriptions = useMemo(() => {
-    let results = MOCK_PRESCRIPTIONS
+    let results = prescriptionList
 
     if (activeFilter !== 'All') {
       const statusMap = { Active: 'ACTIVE', Completed: 'COMPLETED', Pending: 'PENDING', Expired: 'EXPIRED' }
@@ -295,7 +376,7 @@ export default function PatientPortal() {
     }
 
     return results
-  }, [searchQuery, activeFilter])
+  }, [searchQuery, activeFilter, prescriptionList])
 
   const visiblePrescriptions = filteredPrescriptions.slice(0, visibleCount)
   const hasMore = visibleCount < filteredPrescriptions.length
@@ -379,6 +460,26 @@ export default function PatientPortal() {
           }}>
             P
           </div>
+          <button
+            onClick={logout}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              padding: '6px 12px',
+              backgroundColor: 'transparent',
+              border: '1.5px solid #0D7C7C',
+              borderRadius: '4px',
+              color: '#0D7C7C',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', letterSpacing: '0.02em',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0F9F9' }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+            aria-label="Logout"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>logout</span>
+            Logout
+          </button>
         </div>
       </header>
 
@@ -512,7 +613,19 @@ export default function PatientPortal() {
         </div>
 
         {/* ── Prescription cards ────────────────────────────────────── */}
-        {visiblePrescriptions.length > 0 ? (
+        {prescriptionList.length === 0 ? (
+          <div style={{
+            backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
+            borderRadius: '4px', padding: '48px 24px', textAlign: 'center',
+          }}>
+            <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '18px', fontWeight: 600, color: '#1A1A2E', margin: '0 0 8px 0' }}>
+              No prescriptions yet
+            </p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#6B7280', margin: 0 }}>
+              Prescriptions issued by your doctor will appear here
+            </p>
+          </div>
+        ) : visiblePrescriptions.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {visiblePrescriptions.map(rx => (
               <PrescriptionCard key={rx.id} prescription={rx} onAction={handleAction} />

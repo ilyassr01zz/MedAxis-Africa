@@ -1,347 +1,215 @@
-// MedAxis Africa — Prescriptions API (Mock Layer)
-// Week 1-2: All functions operate against the mutable in-memory store.
-// Week 3+:  Replace each function body with real Axios calls.
-//           All real calls must include Authorization: Bearer <token> headers.
+// MedAxis Africa — Prescriptions API (Real Backend Layer)
+// All calls go to the Express backend on port 3001.
+// All requests include Authorization: Bearer <token> headers.
 
-import {
-  mutablePrescriptions,
-  MOCK_AUDIT_ENTRIES,
-} from "../utils/mock-data.js";
-import { getSessionToken } from "./auth.js";
+import axios from 'axios';
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
+const API_URL = import.meta.env.VITE_API_URL;
 
-function simulateLatency(ms = 300) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-let _rxCounter = 900;
-
-function generateRxId() {
-  _rxCounter += 1;
-  const segment1 = String(_rxCounter).padStart(3, "0");
-  const segment2 = String(Math.floor(1000 + Math.random() * 9000));
-  const segment3 = String(Math.floor(10 + Math.random() * 90));
-  return `RX-${segment1}-${segment2}-${segment3}`;
-}
-
-function isoNow() {
-  return new Date().toISOString();
-}
-
-function addDays(isoDate, days) {
-  const d = new Date(isoDate);
-  d.setDate(d.getDate() + days);
-  return d.toISOString();
-}
+const authHeader = (token) => ({ headers: { Authorization: `Bearer ${token}` } });
 
 // ---------------------------------------------------------------------------
-// createPrescription
-// Called by the Doctor portal after the form is submitted.
-// Expects: { patientCniaHash, patientFirstName, patientToken, drugCode,
-//            drugName, dosage, frequency, durationDays }
-// Returns: the newly created prescription object.
+// createPrescription / createPrescriptionAPI
+// POST /api/prescriptions
+// Accepts the mock-layer shape (patientCniaHash, drugCode, etc.) and maps it
+// to the backend shape (patient_cnie_hash, drug_code, etc.) so the doctor
+// portal does not need to be changed.
 // ---------------------------------------------------------------------------
 
-export async function createPrescription(data) {
-  await simulateLatency(450);
-
-  const session = getSessionToken();
-  if (!session) {
-    return { success: false, error: "Unauthenticated. Please log in." };
-  }
-
-  const {
-    patientCniaHash,
-    patientFirstName,
-    patientToken,
-    drugCode,
-    drugName,
-    dosage,
-    frequency,
-    durationDays = 30,
-    doctorId,
-    doctorName,
-  } = data;
-
-  if (!patientCniaHash || !drugCode || !drugName || !dosage) {
-    return {
-      success: false,
-      error:
-        "Missing required fields: patientCniaHash, drugCode, drugName, dosage.",
-    };
-  }
-
-  const now = isoNow();
-  const prescription = {
-    rxId: generateRxId(),
-    doctorId: doctorId || "DOC-001",
-    doctorName: doctorName || "Dr. Ahmed Benali",
-    patientId: patientCniaHash,
-    patientToken: patientToken || "•••••",
-    patientFirstName: patientFirstName || "Patient",
-    drugCode,
-    drugName,
-    dosage,
-    frequency: frequency || "As prescribed",
-    duration: `${durationDays} days`,
-    status: "ACTIVE",
-    issuedAt: now,
-    expiresAt: addDays(now, Number(durationDays)),
-    notes: null,
+export async function createPrescription(data, token) {
+  const payload = {
+    patient_cnie_hash: data.patientCniaHash || data.patient_cnie_hash || data.patientCNIEHash,
+    drug_code: data.drugCode || data.drug_code || data.medication,
+    drug_name: data.drugName || data.drug_name || data.medication,
+    dosage: data.dosage,
+    frequency: data.frequency || 'As prescribed',
+    duration_days: parseInt(data.durationDays || data.duration_days || data.duration || 30, 10),
   };
 
-  mutablePrescriptions.unshift(prescription);
+  const response = await axios.post(`${API_URL}/prescriptions`, payload, authHeader(token));
+  const result = response.data;
+
+  if (!result.success) throw new Error(result.error || 'Failed to create prescription');
+
+  // Normalise to the shape the doctor portal success card expects
+  return {
+    success: true,
+    data: {
+      rxId: result.data.rx_id || result.data.rxId,
+      ...result.data,
+    },
+  };
+}
+
+export const createPrescriptionAPI = (token, data) => createPrescription(data, token);
+
+// ---------------------------------------------------------------------------
+// getMyPrescriptions / getMyPrescriptionsAPI
+// GET /api/prescriptions/my
+// ---------------------------------------------------------------------------
+
+export async function getMyPrescriptions(doctorId, token) {
+  // doctorId arg is ignored; the backend derives it from the JWT.
+  const response = await axios.get(`${API_URL}/prescriptions/my`, authHeader(token));
+  const result = response.data;
+
+  if (!result.success) throw new Error(result.error || 'Failed to load prescriptions');
+
+  // Normalise array: backend returns result.data.prescriptions or result.data (array)
+  const prescriptions = result.data?.prescriptions || result.data || [];
 
   return {
     success: true,
-    data: prescription,
+    data: prescriptions.map(normaliseRx),
   };
 }
 
+export const getMyPrescriptionsAPI = (token) => getMyPrescriptions(null, token);
+
 // ---------------------------------------------------------------------------
-// getMyPrescriptions
-// Returns prescriptions issued by the currently authenticated doctor.
-// Filtered by doctorId passed as argument (from the session user object).
+// getByPatientCnie / getByPatientCNIEAPI
+// GET /api/prescriptions/by-patient/:cnie_hash
 // ---------------------------------------------------------------------------
 
-export async function getMyPrescriptions(doctorId) {
-  await simulateLatency(300);
-
-  if (!doctorId) {
-    return { success: false, error: "doctorId is required." };
-  }
-
-  const results = mutablePrescriptions.filter(
-    (rx) => rx.doctorId === doctorId
+export async function getByPatientCnie(cnieHash, token) {
+  const response = await axios.get(
+    `${API_URL}/prescriptions/by-patient/${cnieHash}`,
+    authHeader(token)
   );
+  const result = response.data;
+
+  if (!result.success) throw new Error(result.error || 'Patient not found');
+
+  const prescriptions = result.data?.prescriptions || result.data || [];
 
   return {
     success: true,
-    data: results,
+    data: {
+      prescriptions: prescriptions.map(normaliseRx),
+      patient_first_name: result.data?.patient_first_name || null,
+      patient_token: result.data?.patient_token || null,
+    },
   };
 }
 
+export const getByPatientCNIEAPI = (token, cnie_hash) => getByPatientCnie(cnie_hash, token);
+
 // ---------------------------------------------------------------------------
-// getByPatientCnie
-// Used by the Pharmacy portal. Returns all non-CANCELLED prescriptions
-// belonging to the patient identified by a CNIE hash or masked token.
+// getPatientPrescriptions / getPatientViewAPI
+// GET /api/prescriptions/patient-view
 // ---------------------------------------------------------------------------
 
-export async function getByPatientCnie(cniaHashOrToken) {
-  await simulateLatency(400);
+export async function getPatientPrescriptions(patientId, token) {
+  const response = await axios.get(`${API_URL}/prescriptions/patient-view`, authHeader(token));
+  const result = response.data;
 
-  if (!cniaHashOrToken) {
-    return { success: false, error: "CNIE hash or token is required." };
-  }
+  if (!result.success) throw new Error(result.error || 'Failed to load history');
 
-  const query = cniaHashOrToken.trim().toLowerCase();
-
-  const results = mutablePrescriptions.filter((rx) => {
-    const tokenMatch = rx.patientToken
-      ?.toLowerCase()
-      .includes(query.replace(/•/g, "").replace(/\*/g, ""));
-    const hashMatch = rx.patientId?.toLowerCase().includes(query);
-    // Also allow lookup by the original numeric portion at end of masked token
-    const suffixMatch =
-      query.length <= 4 &&
-      (rx.patientToken?.endsWith(query) || rx.patientId?.endsWith(query));
-    return (tokenMatch || hashMatch || suffixMatch) && rx.status !== "CANCELLED";
-  });
-
-  if (results.length === 0) {
-    return {
-      success: false,
-      error:
-        "No prescriptions found for the provided CNIE. Verify the number and try again.",
-    };
-  }
+  const prescriptions = result.data?.prescriptions || result.data || [];
 
   return {
     success: true,
-    data: results,
+    data: { prescriptions: prescriptions.map(normaliseRx) },
   };
 }
 
+export const getPatientViewAPI = (token) => getPatientPrescriptions(null, token);
+
 // ---------------------------------------------------------------------------
-// getPatientPrescriptions
-// Returns all prescriptions for a specific patient — used by Patient portal.
+// cancelPrescription / cancelPrescriptionAPI
+// PATCH /api/prescriptions/:rx_id/cancel
 // ---------------------------------------------------------------------------
 
-export async function getPatientPrescriptions(patientId) {
-  await simulateLatency(300);
-
-  if (!patientId) {
-    return { success: false, error: "patientId is required." };
-  }
-
-  const results = mutablePrescriptions.filter(
-    (rx) => rx.patientId === patientId || rx.patientToken?.includes(patientId)
+export async function cancelPrescription(rxId, token) {
+  const response = await axios.patch(
+    `${API_URL}/prescriptions/${rxId}/cancel`,
+    {},
+    authHeader(token)
   );
+  return response.data;
+}
+
+export const cancelPrescriptionAPI = (token, rx_id) => cancelPrescription(rx_id, token);
+
+// ---------------------------------------------------------------------------
+// dispensePrescription / dispensePrescriptionAPI
+// POST /api/prescriptions/:rx_id/dispense
+// ---------------------------------------------------------------------------
+
+export async function dispensePrescription(rxId, data = {}, token) {
+  const response = await axios.post(
+    `${API_URL}/prescriptions/${rxId}/dispense`,
+    data,
+    authHeader(token)
+  );
+  const result = response.data;
+
+  if (!result.success) throw new Error(result.error || 'Dispense failed');
 
   return {
     success: true,
-    data: results,
+    data: {
+      ...result.data,
+      status: 'DISPENSED',
+    },
   };
 }
 
-// ---------------------------------------------------------------------------
-// dispensePrescription
-// Marks a prescription as DISPENSED. Called after the three-check verification.
-// Expects: rxId (string), data: { pharmacistId, pharmacyName }
-// ---------------------------------------------------------------------------
-
-export async function dispensePrescription(rxId, data = {}) {
-  await simulateLatency(400);
-
-  const index = mutablePrescriptions.findIndex((rx) => rx.rxId === rxId);
-
-  if (index === -1) {
-    return { success: false, error: `Prescription ${rxId} not found.` };
-  }
-
-  const rx = mutablePrescriptions[index];
-
-  if (rx.status === "DISPENSED") {
-    return {
-      success: false,
-      error: `Prescription ${rxId} has already been dispensed. It cannot be reused.`,
-    };
-  }
-
-  if (rx.status === "EXPIRED") {
-    return {
-      success: false,
-      error: `Prescription ${rxId} has expired and cannot be dispensed.`,
-    };
-  }
-
-  if (rx.status === "CANCELLED") {
-    return {
-      success: false,
-      error: `Prescription ${rxId} has been cancelled.`,
-    };
-  }
-
-  const updated = {
-    ...rx,
-    status: "DISPENSED",
-    dispensedAt: isoNow(),
-    dispensedBy: data.pharmacistId || "PH-001",
-    dispensedPharmacy: data.pharmacyName || "Pharmacie Centrale",
-  };
-
-  mutablePrescriptions[index] = updated;
-
-  return {
-    success: true,
-    data: updated,
-  };
-}
+export const dispensePrescriptionAPI = (token, rx_id, data) =>
+  dispensePrescription(rx_id, data, token);
 
 // ---------------------------------------------------------------------------
-// cancelPrescription
-// Marks a prescription as CANCELLED. Only the issuing doctor may cancel.
+// disputePrescriptionAPI
+// POST /api/prescriptions/:rx_id/dispute
 // ---------------------------------------------------------------------------
 
-export async function cancelPrescription(rxId) {
-  await simulateLatency(350);
-
-  const index = mutablePrescriptions.findIndex((rx) => rx.rxId === rxId);
-
-  if (index === -1) {
-    return { success: false, error: `Prescription ${rxId} not found.` };
-  }
-
-  const rx = mutablePrescriptions[index];
-
-  if (rx.status === "DISPENSED") {
-    return {
-      success: false,
-      error:
-        "A dispensed prescription cannot be cancelled. Contact a regulator if needed.",
-    };
-  }
-
-  if (rx.status === "CANCELLED") {
-    return {
-      success: false,
-      error: `Prescription ${rxId} is already cancelled.`,
-    };
-  }
-
-  const updated = {
-    ...rx,
-    status: "CANCELLED",
-    cancelledAt: isoNow(),
-  };
-
-  mutablePrescriptions[index] = updated;
-
-  return {
-    success: true,
-    data: updated,
-  };
+export async function disputePrescriptionAPI(token, rx_id) {
+  const response = await axios.post(
+    `${API_URL}/prescriptions/${rx_id}/dispute`,
+    {},
+    authHeader(token)
+  );
+  return response.data;
 }
 
 // ---------------------------------------------------------------------------
 // getAuditTrail
-// Returns the audit log entries for a specific prescription.
-// If no real entries exist for the rxId, a synthetic entry is returned.
+// GET /api/prescriptions/:rx_id/audit
 // ---------------------------------------------------------------------------
 
-export async function getAuditTrail(rxId) {
-  await simulateLatency(300);
+export async function getAuditTrail(rxId, token) {
+  const response = await axios.get(
+    `${API_URL}/prescriptions/${rxId}/audit`,
+    authHeader(token)
+  );
+  return response.data;
+}
 
-  if (!rxId) {
-    return { success: false, error: "rxId is required." };
-  }
+// ---------------------------------------------------------------------------
+// normaliseRx — maps backend snake_case fields to camelCase fields the
+// frontend portals expect, while keeping backend fields as fallbacks.
+// ---------------------------------------------------------------------------
 
-  const entries = MOCK_AUDIT_ENTRIES[rxId];
-
-  if (entries && entries.length > 0) {
-    return { success: true, data: entries };
-  }
-
-  // Fallback: synthesise a creation entry from the prescription record.
-  const rx = mutablePrescriptions.find((r) => r.rxId === rxId);
-
-  if (!rx) {
-    return {
-      success: false,
-      error: `No audit trail found for prescription ${rxId}.`,
-    };
-  }
-
-  const syntheticEntries = [
-    {
-      id: `AUD-${rxId}-A`,
-      rxId,
-      action: "PRESCRIPTION_CREATED",
-      actorId: rx.doctorId,
-      actorRole: "DOCTOR",
-      actorName: rx.doctorName,
-      timestamp: rx.issuedAt,
-      details: `Prescription issued for ${rx.drugName}.`,
-      ipHash: "ip_hash_prototype",
-    },
-  ];
-
-  if (rx.status === "DISPENSED") {
-    syntheticEntries.push({
-      id: `AUD-${rxId}-B`,
-      rxId,
-      action: "PRESCRIPTION_DISPENSED",
-      actorId: rx.dispensedBy || "PH-001",
-      actorRole: "PHARMACIST",
-      actorName: rx.dispensedPharmacy || "Pharmacie Centrale",
-      timestamp: rx.dispensedAt || isoNow(),
-      details: `Medication dispensed. Status set to DISPENSED.`,
-      ipHash: "ip_hash_prototype",
-    });
-  }
-
-  return { success: true, data: syntheticEntries };
+function normaliseRx(rx) {
+  return {
+    // Keep original fields
+    ...rx,
+    // camelCase aliases
+    rxId: rx.rx_id || rx.rxId,
+    drugCode: rx.drug_code || rx.drugCode,
+    drugName: rx.drug_name || rx.drugName,
+    durationDays: rx.duration_days || rx.durationDays,
+    issuedAt: rx.created_at || rx.issuedAt,
+    expiresAt: rx.expiry_date || rx.expiresAt,
+    patientToken: rx.patient_cnie_hash
+      ? `PAT-**-${rx.patient_cnie_hash.slice(-4)}`
+      : rx.patientToken,
+    patientFirstName: rx.patient?.user?.first_name || rx.patientFirstName || 'Patient',
+    doctorName:
+      rx.doctor?.user?.first_name
+        ? `Dr. ${rx.doctor.user.first_name}`
+        : rx.doctorName || 'Unknown Doctor',
+    // Status normalisation: backend uses ACTIVE, frontend also uses VALID
+    status: rx.status,
+  };
 }

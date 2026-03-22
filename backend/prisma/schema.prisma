@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id         String   @id @default(uuid())
+  cnie_hash  String   @unique
+  role       String
+  first_name String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  doctor     Doctor?
+  pharmacist Pharmacist?
+  patient    Patient?
+  regulator  Regulator?
+  audit_logs AuditLog[]
+}
+
+model Doctor {
+  id             String   @id @default(uuid())
+  user_id        String   @unique
+  license_number String   @unique
+  specialty      String
+  facility       String
+  region         String
+  status         String   @default("ACTIVE")
+  created_at     DateTime @default(now())
+
+  user           User                 @relation(fields: [user_id], references: [id])
+  prescriptions  Prescription[]
+  license_vc     LicenseVC?
+  status_changes DoctorStatusChange[]
+}
+
+model Pharmacist {
+  id             String   @id @default(uuid())
+  user_id        String   @unique
+  license_number String   @unique
+  pharmacy_id    String
+  created_at     DateTime @default(now())
+
+  user              User              @relation(fields: [user_id], references: [id])
+  pharmacy          Pharmacy          @relation(fields: [pharmacy_id], references: [id])
+  dispensing_events DispensingEvent[]
+}
+
+model Patient {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  cnie_hash  String   @unique
+  phone_hash String?
+  created_at DateTime @default(now())
+
+  user          User           @relation(fields: [user_id], references: [id])
+  prescriptions Prescription[]
+}
+
+model Regulator {
+  id         String   @id @default(uuid())
+  user_id    String   @unique
+  region     String
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Pharmacy {
+  id             String   @id @default(uuid())
+  name           String
+  license_number String   @unique
+  region         String
+  city           String
+  status         String   @default("ACTIVE")
+  created_at     DateTime @default(now())
+
+  pharmacists       Pharmacist[]
+  dispensing_events DispensingEvent[]
+}
+
+model Prescription {
+  id            String   @id @default(uuid())
+  rx_id         String   @unique
+  doctor_id     String
+  patient_id    String
+  drug_code     String
+  drug_name     String
+  dosage        String
+  frequency     String
+  duration_days Int
+  expiry_date   DateTime
+  status        String   @default("ACTIVE")
+  is_flagged    Boolean  @default(false)
+  is_disputed   Boolean  @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  doctor            Doctor           @relation(fields: [doctor_id], references: [id])
+  patient           Patient          @relation(fields: [patient_id], references: [id])
+  dispensing_events DispensingEvent[]
+  insurance_claims  InsuranceClaim[]
+}
+
+model DispensingEvent {
+  id                      String   @id @default(uuid())
+  prescription_id         String
+  pharmacist_id           String
+  pharmacy_id             String
+  quantity_dispensed      Int
+  doctor_license_verified Boolean  @default(false)
+  patient_otp_verified    Boolean  @default(false)
+  created_at              DateTime @default(now())
+
+  prescription Prescription @relation(fields: [prescription_id], references: [id])
+  pharmacist   Pharmacist   @relation(fields: [pharmacist_id], references: [id])
+  pharmacy     Pharmacy     @relation(fields: [pharmacy_id], references: [id])
+}
+
+model LicenseVC {
+  id         String   @id @default(uuid())
+  doctor_id  String   @unique
+  vc_json    String
+  issuer_did String
+  issued_at  DateTime @default(now())
+  expires_at DateTime
+  is_revoked Boolean  @default(false)
+
+  doctor Doctor @relation(fields: [doctor_id], references: [id])
+}
+
+model InsuranceClaim {
+  id              String   @id @default(uuid())
+  prescription_id String
+  claim_amount    Float
+  status          String   @default("PENDING")
+  submitted_at    DateTime @default(now())
+
+  prescription Prescription @relation(fields: [prescription_id], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String?
+  role        String?
+  endpoint    String
+  method      String
+  status_code Int
+  rx_id       String?
+  action      String
+  created_at  DateTime @default(now())
+
+  user User? @relation(fields: [user_id], references: [id])
+}
+
+model DoctorStatusChange {
+  id         String   @id @default(uuid())
+  doctor_id  String
+  old_status String
+  new_status String
+  reason     String
+  changed_by String
+  created_at DateTime @default(now())
+
+  doctor Doctor @relation(fields: [doctor_id], references: [id])
+}
+
+model OTPSession {
+  id         String   @id @default(uuid())
+  phone_hash String
+  otp_code   String
+  attempts   Int      @default(0)
+  expires_at DateTime
+  is_used    Boolean  @default(false)
+  created_at DateTime @default(now())
+}

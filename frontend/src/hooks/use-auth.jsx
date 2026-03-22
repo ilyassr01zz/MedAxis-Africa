@@ -41,12 +41,12 @@ export function AuthProvider({ children }) {
   // login
   // -------------------------------------------------------------------------
   const login = useCallback(
-    async (username, password) => {
+    async (username, password, role) => {
       setLoading(true)
       setError(null)
 
       try {
-        const result = await loginRequest(username, password)
+        const result = await loginRequest(username, password, role)
 
         if (!result.success) {
           throw new Error(result.error || 'Authentication failed')

@@ -1,72 +1,40 @@
-// MedAxis Africa — Patients API (Mock Layer)
-// Week 1-2: Returns mock patient tokens and first names only.
-// Week 3+:  Replace function bodies with Axios calls to /api/patients/*.
-//
+// MedAxis Africa — Patients API (Real Backend Layer)
 // Privacy rule: Raw CNIE numbers are NEVER returned from any function here.
-// Only masked tokens (e.g. "A•••••31") and first names are exposed.
+// Only masked tokens and first names are exposed.
 
-import { MOCK_PATIENTS } from "../utils/mock-data.js";
+import axios from 'axios';
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-function simulateLatency(ms = 300) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ---------------------------------------------------------------------------
-// searchPatient
-// Looks up a patient by their CNIE input. The CNIE itself is never stored or
-// returned. The function returns the masked token and first name only.
-//
-// Accepts raw CNIE strings like "AB123456" — matches against known suffixes.
-// In the pharmacy portal this drives the CNIE input field lookup.
+// searchPatient / searchPatientAPI
+// GET /api/patients/search?cnie=xxx
+// Returns: { token, firstName, patientId, insuranceId }
 // ---------------------------------------------------------------------------
 
-export async function searchPatient(cnie) {
-  await simulateLatency(350);
-
-  if (!cnie || cnie.trim().length < 4) {
-    return {
-      success: false,
-      error: "Please enter a valid CNIE number (minimum 4 characters).",
-    };
-  }
-
-  const input = cnie.trim().toLowerCase();
-
-  // Attempt to match against the known suffix embedded in each token.
-  // Token format is "X•••••NN" where NN is the last 2 digits of the CNIE.
-  const patient = MOCK_PATIENTS.find((p) => {
-    const tokenSuffix = p.cniaToken.replace(/[^0-9]/g, ""); // extract digits
-    const inputSuffix = input.replace(/[^0-9]/g, "").slice(-2);
-    return (
-      tokenSuffix === inputSuffix ||
-      p.cniaHash.includes(input) ||
-      // Allow demo shortcodes: "A31", "B42", "C57", "D68"
-      p.cniaToken.toLowerCase().startsWith(input.charAt(0)) &&
-        p.cniaToken.endsWith(input.replace(/[^0-9]/g, "").slice(-2))
-    );
+export async function searchPatient(cnie, token) {
+  const response = await axios.get(`${API_URL}/patients/search?cnie=${cnie}`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
+  const result = response.data;
 
-  // Fallback: if no match, cycle through patients deterministically based on
-  // the last character of the input so every CNIE entry works in the demo.
-  const fallbackIndex =
-    input.charCodeAt(input.length - 1) % MOCK_PATIENTS.length;
-  const resolved = patient || MOCK_PATIENTS[fallbackIndex];
+  if (!result.success) throw new Error(result.error || 'Patient not found');
 
+  const d = result.data;
+
+  // Normalise to the shape the doctor portal patient lookup expects
   return {
     success: true,
     data: {
-      // ONLY the masked token and first name are returned — no raw PII.
-      token: resolved.cniaToken,
-      firstName: resolved.firstName,
-      patientId: resolved.id,
-      insuranceId: resolved.insuranceId,
+      token: d.token || d.cnie_token || `PAT-**-${cnie.slice(-4)}`,
+      firstName: d.first_name || d.firstName,
+      patientId: d.id || d.patientId,
+      insuranceId: d.insurance_id || d.insuranceId,
     },
   };
 }
+
+export const searchPatientAPI = (token, cnie) => searchPatient(cnie, token);
 
 // ---------------------------------------------------------------------------
 // getPatientSummary
@@ -74,26 +42,21 @@ export async function searchPatient(cnie) {
 // card. Same privacy constraints apply: no raw CNIE, no last name.
 // ---------------------------------------------------------------------------
 
-export async function getPatientSummary(patientId) {
-  await simulateLatency(250);
+export async function getPatientSummary(patientId, token) {
+  const response = await axios.get(`${API_URL}/patients/search?id=${patientId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const result = response.data;
 
-  if (!patientId) {
-    return { success: false, error: "patientId is required." };
-  }
-
-  const patient = MOCK_PATIENTS.find((p) => p.id === patientId);
-
-  if (!patient) {
-    return { success: false, error: `Patient ${patientId} not found.` };
-  }
+  if (!result.success) return { success: false, error: 'Patient not found' };
 
   return {
     success: true,
     data: {
-      token: patient.cniaToken,
-      firstName: patient.firstName,
-      patientId: patient.id,
-      insuranceId: patient.insuranceId,
+      token: result.data.token,
+      firstName: result.data.first_name || result.data.firstName,
+      patientId: result.data.id || result.data.patientId,
+      insuranceId: result.data.insurance_id || result.data.insuranceId,
     },
   };
 }

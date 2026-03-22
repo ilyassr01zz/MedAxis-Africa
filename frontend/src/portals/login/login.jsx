@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAuth } from '../../hooks/use-auth'
-import { MOCK_LOGIN_CREDENTIALS } from '../../utils/mock-data'
 
 const TEAL   = '#0D7C7C'
 const BORDER = '#E5E7EB'
@@ -25,15 +24,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setRoleError('')
-    // Check if the entered credentials belong to the selected role before proceeding.
-    const match = MOCK_LOGIN_CREDENTIALS.find(
-      c => c.username.toLowerCase() === username.toLowerCase() && c.password === password
-    )
-    if (match && match.role !== selectedRole) {
-      setRoleError('Invalid credentials for the selected role. Please check your role selection.')
-      return
-    }
-    await login(username, password)
+    await login(username, password, selectedRole)
   }
 
   return (
