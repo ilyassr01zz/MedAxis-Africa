@@ -13,7 +13,7 @@ This repository is part of our submission for the **2026 Africa Digital ID Hacka
 
 Selected as one of ~24 semi-finalist teams from 900+ applicants across Africa.
 
-Code and demo coming soon.
+Code and demo coming soon...
 
 ---
 
