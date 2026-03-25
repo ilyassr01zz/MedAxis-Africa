@@ -64,19 +64,47 @@ const createPrescription = async (req, res) => {
 const getMyPrescriptions = async (req, res) => {
   try {
     const doctor = await prisma.doctor.findUnique({ where: { user_id: req.user.id } });
-    if (!doctor) return success(res, { prescriptions: [] });
-    const prescriptions = await prisma.prescription.findMany({
-      where: { doctor_id: doctor.id },
-      include: { patient: { include: { user: true } } },
-      orderBy: { created_at: 'desc' }
-    });
+    if (!doctor) return success(res, { prescriptions: [], total: 0 });
+
+    const { status, dateFrom, dateTo, search } = req.query;
+
+    const defaultFrom = new Date();
+    defaultFrom.setDate(defaultFrom.getDate() - 30);
+
+    const where = {
+      doctor_id: doctor.id,
+      created_at: {
+        gte: dateFrom ? new Date(dateFrom) : defaultFrom,
+        lte: dateTo ? new Date(new Date(dateTo).setHours(23, 59, 59, 999)) : new Date()
+      }
+    };
+
+    if (status && status !== 'ALL') where.status = status;
+    if (search) {
+      where.OR = [
+        { drug_name: { contains: search } },
+        { rx_id: { contains: search } }
+      ];
+    }
+
+    const [prescriptions, total] = await Promise.all([
+      prisma.prescription.findMany({
+        where,
+        include: { patient: { include: { user: true } } },
+        orderBy: { created_at: 'desc' }
+      }),
+      prisma.prescription.count({ where })
+    ]);
+
     const now = new Date();
     const updated = prescriptions.map(p => ({
       ...p,
       status: p.status === 'ACTIVE' && p.expiry_date < now ? 'EXPIRED' : p.status
     }));
-    return success(res, { prescriptions: updated });
+
+    return success(res, { prescriptions: updated, total });
   } catch (err) {
+    console.error(err);
     return error(res, 'Failed to fetch prescriptions', 500);
   }
 };
@@ -291,6 +319,73 @@ const getAuditTrail = async (req, res) => {
   }
 };
 
+const getDoctorStats = async (req, res) => {
+  try {
+    const doctor = await prisma.doctor.findUnique({ where: { user_id: req.user.id } });
+    if (!doctor) return success(res, { issuedToday: 0, pendingPickup: 0, issuedThisMonth: 0 });
+
+    const now = new Date();
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [issuedToday, pendingPickup, issuedThisMonth] = await Promise.all([
+      prisma.prescription.count({
+        where: { doctor_id: doctor.id, created_at: { gte: startOfToday } }
+      }),
+      prisma.prescription.count({
+        where: { doctor_id: doctor.id, status: 'ACTIVE', expiry_date: { gt: now } }
+      }),
+      prisma.prescription.count({
+        where: { doctor_id: doctor.id, created_at: { gte: startOfMonth } }
+      })
+    ]);
+
+    return success(res, { issuedToday, pendingPickup, issuedThisMonth });
+  } catch (err) {
+    console.error('getDoctorStats error:', err);
+    return error(res, 'Failed to fetch stats', 500);
+  }
+};
+
+const getRecentActivity = async (req, res) => {
+  try {
+    const doctor = await prisma.doctor.findUnique({ where: { user_id: req.user.id } });
+    if (!doctor) return success(res, { activities: [] });
+
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const prescriptions = await prisma.prescription.findMany({
+      where: {
+        doctor_id: doctor.id,
+        created_at: { gte: last24h }
+      },
+      include: {
+        patient: { include: { user: true } }
+      },
+      orderBy: { created_at: 'desc' },
+      take: 10
+    });
+
+    const activities = prescriptions.map(p => ({
+      id: p.id,
+      rx_id: p.rx_id,
+      type: 'PRESCRIPTION_ISSUED',
+      description: `Prescription ${p.rx_id} issued`,
+      detail: `${p.patient?.user?.first_name || 'Patient'} \u2022 ${p.drug_name}`,
+      dot_color: '#6B7280',
+      time: p.created_at
+    }));
+
+    return success(res, { activities });
+  } catch (err) {
+    console.error('getRecentActivity error:', err);
+    return error(res, 'Failed to fetch recent activity', 500);
+  }
+};
+
 module.exports = {
   createPrescription,
   getMyPrescriptions,
@@ -300,5 +395,7 @@ module.exports = {
   dispensePrescription,
   disputePrescription,
   flagPrescription,
-  getAuditTrail
+  getAuditTrail,
+  getDoctorStats,
+  getRecentActivity
 };

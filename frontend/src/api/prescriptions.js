@@ -48,23 +48,30 @@ export const createPrescriptionAPI = (token, data) => createPrescription(data, t
 // GET /api/prescriptions/my
 // ---------------------------------------------------------------------------
 
-export async function getMyPrescriptions(doctorId, token) {
+export async function getMyPrescriptions(doctorId, token, queryParams = '') {
   // doctorId arg is ignored; the backend derives it from the JWT.
-  const response = await axios.get(`${API_URL}/prescriptions/my`, authHeader(token));
+  const url = queryParams
+    ? `${API_URL}/prescriptions/my?${queryParams}`
+    : `${API_URL}/prescriptions/my`;
+  const response = await axios.get(url, authHeader(token));
   const result = response.data;
 
   if (!result.success) throw new Error(result.error || 'Failed to load prescriptions');
 
-  // Normalise array: backend returns result.data.prescriptions or result.data (array)
-  const prescriptions = result.data?.prescriptions || result.data || [];
+  // Backend now returns { prescriptions: [...], total: N }
+  const prescriptions = result.data?.prescriptions || [];
+  const total = result.data?.total ?? prescriptions.length;
 
   return {
     success: true,
-    data: prescriptions.map(normaliseRx),
+    data: {
+      prescriptions: prescriptions.map(normaliseRx),
+      total,
+    },
   };
 }
 
-export const getMyPrescriptionsAPI = (token) => getMyPrescriptions(null, token);
+export const getMyPrescriptionsAPI = (token, queryParams = '') => getMyPrescriptions(null, token, queryParams);
 
 // ---------------------------------------------------------------------------
 // getByPatientCnie / getByPatientCNIEAPI
@@ -171,6 +178,26 @@ export async function disputePrescriptionAPI(token, rx_id) {
   );
   return response.data;
 }
+
+// ---------------------------------------------------------------------------
+// getDoctorStatsAPI
+// GET /api/prescriptions/doctor-stats
+// ---------------------------------------------------------------------------
+
+export const getDoctorStatsAPI = async (token) => {
+  const response = await axios.get(`${API_URL}/prescriptions/doctor-stats`, authHeader(token));
+  return response.data;
+};
+
+// ---------------------------------------------------------------------------
+// getRecentActivityAPI
+// GET /api/prescriptions/recent-activity
+// ---------------------------------------------------------------------------
+
+export const getRecentActivityAPI = async (token) => {
+  const response = await axios.get(`${API_URL}/prescriptions/recent-activity`, authHeader(token));
+  return response.data;
+};
 
 // ---------------------------------------------------------------------------
 // getAuditTrail
