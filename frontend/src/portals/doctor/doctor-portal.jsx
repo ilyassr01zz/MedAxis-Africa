@@ -32,6 +32,65 @@ const STATUS_CFG = {
 
 const MOCK_PATIENT = { token: 'PAT-**-8821', firstName: 'Ahmed', activePrescriptions: 2, lastDate: '24/09/2024' }
 
+// ─── Medications registry ─────────────────────────────────────────────────────
+const MEDICATIONS = [
+  { id: 1,  name: 'Doliprane',        drug_code: 'N02BE01',    category: 'analgesic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }, { form: 'syrup',   unit: 'ml',      max_dose: 200,  max_units: 1, default_dose: 100 }, { form: 'sachet',  unit: 'sachets', max_dose: 1000, max_units: 3, default_dose: 1    }] },
+  { id: 2,  name: 'Amoxicilline',     drug_code: 'J01CA04',    category: 'antibiotic',         forms: [{ form: 'capsule', unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }, { form: 'syrup',   unit: 'ml',      max_dose: 250,  max_units: 1, default_dose: 125  }] },
+  { id: 3,  name: 'Ventoline',        drug_code: 'R03AC02',    category: 'bronchodilator',     forms: [{ form: 'inhaler', unit: 'puffs',   max_dose: 2,    max_units: 4, default_dose: 2 }] },
+  { id: 4,  name: 'Metformine',       drug_code: 'A10BA02',    category: 'antidiabetic',       forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }] },
+  { id: 5,  name: 'Paracétamol IV',   drug_code: 'N02BE01-IV', category: 'analgesic',          forms: [{ form: 'IV',      unit: 'mg',      max_dose: 1000, max_units: 4, default_dose: 1000 }] },
+  { id: 6,  name: 'Tramadol',         drug_code: 'N02AX02',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 100, max_units: 4, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 100, max_units: 4, default_dose: 50 }] },
+  { id: 7,  name: 'Diazépam',         drug_code: 'N05BA01',    category: 'controlled_psy',     controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 10,  max_units: 3, default_dose: 1 }] },
+  { id: 8,  name: 'Oméprazole',       drug_code: 'A02BC01',    category: 'gastro',             forms: [{ form: 'capsule', unit: 'pills',   max_dose: 40,   max_units: 2, default_dose: 1 }] },
+  { id: 9,  name: 'Ibuprofène',       drug_code: 'M01AE01',    category: 'anti-inflammatory',  forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 600,  max_units: 3, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 200, max_units: 3, default_dose: 100 }] },
+  { id: 10, name: 'Amitriptyline',    drug_code: 'N06AA09',    category: 'controlled_psy',     controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 75,  max_units: 3, default_dose: 1 }] },
+  { id: 11, name: 'Augmentin',        drug_code: 'J01CR02',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 250, max_units: 3, default_dose: 125 }] },
+  { id: 12, name: 'Loratadine',       drug_code: 'R06AX13',    category: 'antihistamine',      forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 1, default_dose: 100 }] },
+  { id: 13, name: 'Prednisolone',     drug_code: 'H02AB06',    category: 'corticosteroid',     forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 60,   max_units: 3, default_dose: 1 }] },
+  { id: 14, name: 'Amlodipine',       drug_code: 'C08CA01',    category: 'antihypertensive',   forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }] },
+  { id: 15, name: 'Atorvastatine',    drug_code: 'C10AA05',    category: 'statin',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 1, default_dose: 1 }] },
+  { id: 16, name: 'Levothyroxine',    drug_code: 'H03AA01',    category: 'thyroid',            forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 200,  max_units: 1, default_dose: 1 }] },
+  { id: 17, name: 'Furosémide',       drug_code: 'C03CA01',    category: 'diuretic',           forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
+  { id: 18, name: 'Metronidazole',    drug_code: 'J01XD01',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 500,  max_units: 3, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 500, max_units: 3, default_dose: 500 }] },
+  { id: 19, name: 'Fluconazole',      drug_code: 'J02AC01',    category: 'antifungal',         forms: [{ form: 'capsule', unit: 'pills',   max_dose: 400,  max_units: 1, default_dose: 1 }] },
+  { id: 20, name: 'Cetirizine',       drug_code: 'R06AE07',    category: 'antihistamine',      forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 1, default_dose: 100 }] },
+  { id: 21, name: 'Salbutamol',       drug_code: 'R03AC02-S',  category: 'bronchodilator',     forms: [{ form: 'inhaler', unit: 'puffs',   max_dose: 2,    max_units: 4, default_dose: 2 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 3, default_dose: 50 }] },
+  { id: 22, name: 'Ciprofloxacine',   drug_code: 'J01MA02',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 750,  max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 400, max_units: 2, default_dose: 400 }] },
+  { id: 23, name: 'Ranitidine',       drug_code: 'A02BA02',    category: 'gastro',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 300,  max_units: 2, default_dose: 1 }] },
+  { id: 24, name: 'Morphine',         drug_code: 'N02AA01',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'IV', unit: 'mg', max_dose: 15, max_units: 4, default_dose: 10 }, { form: 'tablet', unit: 'pills', max_dose: 30, max_units: 4, default_dose: 1 }] },
+  { id: 25, name: 'Codéine',          drug_code: 'R05DA04',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 60, max_units: 4, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 4, default_dose: 15 }] },
+  { id: 26, name: 'Alprazolam',       drug_code: 'N05BA12',    category: 'controlled_psy',     controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 1,  max_units: 3, default_dose: 1 }] },
+  { id: 27, name: 'Insuline Glargine',drug_code: 'A10AE04',    category: 'antidiabetic',       forms: [{ form: 'IV',      unit: 'units',   max_dose: 100,  max_units: 1, default_dose: 20 }] },
+  { id: 28, name: 'Warfarine',        drug_code: 'B01AA03',    category: 'anticoagulant',      forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }] },
+  { id: 29, name: 'Azithromycine',    drug_code: 'J01FA10',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 500,  max_units: 1, default_dose: 1 }, { form: 'sachet', unit: 'sachets', max_dose: 500, max_units: 1, default_dose: 1 }] },
+  { id: 30, name: 'Pantoprazole',     drug_code: 'A02BC02',    category: 'gastro',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
+]
+
+// Returns max allowed dosage amount for a form object
+function getMaxForForm(fo) {
+  return ['pills', 'puffs', 'sachets'].includes(fo.unit) ? fo.max_units : fo.max_dose
+}
+
+// Returns dosage label + unit based on form type
+function getDosageMeta(fo) {
+  if (!fo) return { label: 'Amount', unit: '' }
+  switch (fo.form) {
+    case 'tablet':
+    case 'capsule':  return { label: 'Number of pills', unit: fo.unit }
+    case 'syrup':
+    case 'liquid':   return { label: 'Amount (ml)', unit: fo.unit }
+    case 'IV':       return { label: `Amount (${fo.unit})`, unit: fo.unit }
+    case 'inhaler':  return { label: 'Number of puffs', unit: fo.unit }
+    case 'powder':
+    case 'sachet':   return { label: 'Number of sachets', unit: fo.unit }
+    default:         return { label: 'Amount', unit: fo.unit }
+  }
+}
+
+function newMedItem() {
+  return { _id: Date.now() + Math.random(), selectedMed: null, selectedForm: '', dosageAmount: '', frequency: '', duration: '', dosageError: '' }
+}
+
 const ACTIVITY = [
   { dot: TEAL,      action: 'Prescription #RJ-882190 dispensed',            sub: 'Karima Alaoui • Pharmacie Atlas, Casablanca',    time: '2 hours ago'       },
   { dot: MUTED,     action: 'New prescription issued',                       sub: 'Fatima Zahrae • Amoxicillin 500mg',               time: '3 hours ago'       },
@@ -67,7 +126,9 @@ export default function DoctorPortal() {
 
   const [activeView, setActiveView]           = useState('dashboard')
   const [currentPage, setCurrentPage]         = useState(1)
-  const [form, setForm]                       = useState({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+  const [form, setForm]                       = useState({ patientId: '', diagnosis: '', expiryDays: '', notes: '' })
+  const [medications, setMedications]         = useState([newMedItem()])
+  const [formErrors, setFormErrors]           = useState({})
   const [submitting, setSubmitting]           = useState(false)
   const [successRxId, setSuccessRxId]         = useState(null)
   const [successExpiry, setSuccessExpiry]     = useState(null)
@@ -114,7 +175,7 @@ export default function DoctorPortal() {
 
   const leftRef       = useRef(null)
   const rightInnerRef = useRef(null)
-  const cnieRef       = useRef(null)
+  const patientIdRef  = useRef(null)
   const lookupRef     = useRef(null)
 
   const totalPages = Math.ceil(TOTAL_RECORDS / 5)
@@ -130,7 +191,7 @@ export default function DoctorPortal() {
     setActiveView(view)
     if (view === 'new-rx') {
       setSuccessRxId(null)
-      setTimeout(() => { if (cnieRef.current) cnieRef.current.focus() }, 50)
+      setTimeout(() => { if (patientIdRef.current) patientIdRef.current.focus() }, 50)
     } else if (view === 'patients') {
       setTimeout(() => { if (lookupRef.current) lookupRef.current.focus() }, 50)
     } else if (view === 'dashboard') {
@@ -147,7 +208,9 @@ export default function DoctorPortal() {
   }, [])
 
   const resetForm = useCallback(() => {
-    setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+    setForm({ patientId: '', diagnosis: '', expiryDays: '', notes: '' })
+    setMedications([newMedItem()])
+    setFormErrors({})
     setSuccessRxId(null)
     setSuccessExpiry(null)
     setDashSuccess(false)
@@ -155,21 +218,71 @@ export default function DoctorPortal() {
 
   // Shared prescription creation logic
   const submitPrescription = useCallback(async () => {
-    if (!form.cnie || !form.medication || !form.dosage || !form.duration) return null
+    // ── Validation ──
+    const errors = {}
+    if (!form.patientId.trim()) errors.patientId = 'Patient ID is required'
+
+    const validMeds = medications.filter(m => m.selectedMed && m.selectedForm)
+    if (validMeds.length === 0) {
+      errors.medications = 'At least one medication with a form selected is required'
+    } else {
+      const codes = validMeds.map(m => m.selectedMed.drug_code)
+      if (new Set(codes).size !== codes.length) errors.medications = 'Duplicate medications are not allowed'
+
+      let medIssue = null
+      validMeds.forEach(m => {
+        if (medIssue) return
+        const fo = m.selectedMed.forms.find(f => f.form === m.selectedForm)
+        if (!fo) return
+        const n = parseFloat(m.dosageAmount)
+        const max = getMaxForForm(fo)
+        if (!m.dosageAmount || isNaN(n) || n <= 0) medIssue = 'One or more medications have invalid dosage'
+        else if (n > max) medIssue = `One or more medications exceed maximum dosage`
+        if (!m.frequency || !m.frequency.trim()) medIssue = 'Frequency is required for all medications'
+        const dur = parseInt(m.duration, 10)
+        if (!m.duration || isNaN(dur) || dur < 1 || dur > 365) medIssue = 'Duration (1–365 days) is required for all medications'
+      })
+      if (medIssue) errors.medications = errors.medications || medIssue
+    }
+
+    if (form.expiryDays) {
+      const expNum = parseInt(form.expiryDays, 10)
+      if (isNaN(expNum) || expNum < 1 || expNum > 180) errors.expiryDays = 'Expiry must be between 1 and 180 days'
+    }
+    if (form.notes && form.notes.length > 300) errors.notes = 'Notes must be 300 characters or fewer'
+
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return null }
+    setFormErrors({})
     setSubmitting(true)
     setFormError('')
     try {
-      const cnie_hash = await hashCNIE(form.cnie)
+      const cnie_hash = await hashCNIE(form.patientId)
+      const meds = validMeds.map(m => {
+        const fo = m.selectedMed.forms.find(f => f.form === m.selectedForm)
+        return {
+          drug_code:    m.selectedMed.drug_code,
+          drug_name:    m.selectedMed.name,
+          form:         m.selectedForm,
+          dosage_amount: parseFloat(m.dosageAmount),
+          dosage_unit:  fo ? fo.unit : '',
+          frequency:    m.frequency,
+          duration_days: parseInt(m.duration, 10),
+          controlled:   !!m.selectedMed.controlled,
+        }
+      })
       const result = await createPrescriptionAPI(token, {
+        patient_id:       form.patientId,
         patient_cnie_hash: cnie_hash,
-        drug_code: form.medication,
-        drug_name: form.medication,
-        dosage: form.dosage,
-        frequency: 'As prescribed',
-        duration_days: parseInt(form.duration, 10),
+        medications:      meds,
+        drug_code:        meds[0].drug_code,
+        drug_name:        meds[0].drug_name,
+        dosage:           `${meds[0].dosage_amount} ${meds[0].dosage_unit}`,
+        frequency:        meds[0].frequency,
+        duration_days:    meds[0].duration_days,
+        expiry_days:      form.expiryDays ? parseInt(form.expiryDays, 10) : null,
+        notes:            form.notes || null,
       })
       if (result.success) {
-        // Reload prescriptions list
         try {
           const updated = await getMyPrescriptionsAPI(token)
           if (updated.success && Array.isArray(updated.data)) {
@@ -193,7 +306,7 @@ export default function DoctorPortal() {
       setSubmitting(false)
     }
     return null
-  }, [form, token])
+  }, [form, medications, token])
 
   // Dashboard split-view submit → mini success banner
   const handleDashSubmit = useCallback(async (e) => {
@@ -201,7 +314,9 @@ export default function DoctorPortal() {
     const rxId = await submitPrescription()
     if (rxId) {
       setDashSuccess(true)
-      setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+      setForm({ patientId: '', diagnosis: '', expiryDays: '', notes: '' })
+      setMedications([newMedItem()])
+      setFormErrors({})
       setTimeout(() => setDashSuccess(false), 3000)
     }
   }, [submitPrescription])
@@ -209,15 +324,17 @@ export default function DoctorPortal() {
   // Full-width new-rx submit → success card
   const handleNewRxSubmit = useCallback(async (e) => {
     e.preventDefault()
-    const days = parseInt(form.duration, 10) || 0
+    const expiryDays = parseInt(form.expiryDays, 10) || 90
     const rxId = await submitPrescription()
     if (rxId) {
-      const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+      const expiry = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000)
       setSuccessExpiry(expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
       setSuccessRxId(rxId)
-      setForm({ cnie: '', diagnosis: '', medication: '', dosage: '', duration: '' })
+      setForm({ patientId: '', diagnosis: '', expiryDays: '', notes: '' })
+      setMedications([newMedItem()])
+      setFormErrors({})
     }
-  }, [submitPrescription, form.duration])
+  }, [submitPrescription, form.expiryDays])
 
   const handlePatientSearch = useCallback(async () => {
     if (!patientQuery.trim()) return
@@ -238,10 +355,10 @@ export default function DoctorPortal() {
   }, [patientQuery, token])
 
   const issueForPatient = useCallback(() => {
-    setForm(f => ({ ...f, cnie: patientQuery }))
+    setForm(f => ({ ...f, patientId: patientQuery }))
     setSuccessRxId(null)
     setActiveView('new-rx')
-    setTimeout(() => { if (cnieRef.current) cnieRef.current.focus() }, 50)
+    setTimeout(() => { if (patientIdRef.current) patientIdRef.current.focus() }, 50)
   }, [patientQuery])
 
   // ─── Back button ─────────────────────────────────────────────────────────
@@ -549,24 +666,92 @@ export default function DoctorPortal() {
                       <h2 style={{ fontSize: 13, fontWeight: 800, color: TEAL, textTransform: 'uppercase', letterSpacing: '0.09em', margin: 0 }}>New Prescription</h2>
                     </div>
                     <form onSubmit={handleNewRxSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      <Field label="Patient CNIE">
-                        <Input id="cnie-input" inputRef={cnieRef} height={52} value={form.cnie} onChange={v => setField('cnie', v)} placeholder="e.g. AB123456" />
+                      {/* 1 — Patient ID */}
+                      <Field label="Patient ID">
+                        <Input id="patient-id-input" inputRef={patientIdRef} height={52} value={form.patientId} onChange={v => setField('patientId', v)} placeholder="e.g. P-001" />
+                        {formErrors.patientId && <p style={{ fontSize: 12, color: '#E53E3E', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.patientId}</p>}
                       </Field>
+
+                      {/* 2 — Primary Diagnosis (ephemeral) */}
                       <Field label="Primary Diagnosis">
-                        <Input height={52} value={form.diagnosis} onChange={v => setField('diagnosis', v)} placeholder="Enter clinical ICD-10 code or text" />
+                        <Input height={52} value={form.diagnosis} onChange={v => setField('diagnosis', v)} placeholder="Enter ICD-10 code or description — for issuance reference only" />
+                        <p style={{ fontSize: 11, color: MUTED, margin: '5px 0 0', lineHeight: 1.5 }}>This field is used for prescription authorization only and is never stored in the system.</p>
                       </Field>
-                      <Field label="Medication / Treatment">
-                        <div style={{ position: 'relative' }}>
-                          <Input height={52} value={form.medication} onChange={v => setField('medication', v)} placeholder="Search national drug registry..." padLeft={44} />
-                          <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: '#9CA3AF', pointerEvents: 'none' }}>search</span>
+
+                      {/* 3–4 — Medications list */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Medications</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {medications.map((med, idx) => (
+                            <MedicationRow
+                              key={med._id}
+                              med={med}
+                              idx={idx}
+                              totalCount={medications.length}
+                              onUpdate={(i, field, val) => setMedications(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))}
+                              onRemove={(i) => setMedications(prev => prev.filter((_, j) => j !== i))}
+                            />
+                          ))}
                         </div>
+                        {medications.length < 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setMedications(m => [...m, newMedItem()])}
+                            style={{
+                              marginTop: 10, height: 36, padding: '0 16px',
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              backgroundColor: 'transparent', color: TEAL,
+                              border: `1px dashed ${TEAL}`, borderRadius: 4,
+                              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                              fontFamily: "'Space Grotesk', sans-serif",
+                              letterSpacing: '0.04em',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_BG }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add_circle</span>
+                            Add Medication
+                          </button>
+                        )}
+                        {formErrors.medications && <p style={{ fontSize: 12, color: '#E53E3E', margin: '6px 0 0', fontWeight: 500 }}>{formErrors.medications}</p>}
+                      </div>
+
+                      {/* 6 — Expiry (optional) */}
+                      <Field label="Expiry (Days) — Optional">
+                        <Input height={52} type="number" value={form.expiryDays} onChange={v => setField('expiryDays', v)} placeholder="Default: 90 days" />
+                        {form.expiryDays && !formErrors.expiryDays && (() => {
+                          const d = new Date(Date.now() + (parseInt(form.expiryDays, 10) || 90) * 86400000)
+                          return <p style={{ fontSize: 11, color: TEAL, margin: '5px 0 0', fontWeight: 600 }}>Expires on: {d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        })()}
+                        {formErrors.expiryDays && <p style={{ fontSize: 12, color: '#E53E3E', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.expiryDays}</p>}
                       </Field>
-                      <Field label="Dosage">
-                        <Input height={52} value={form.dosage} onChange={v => setField('dosage', v)} placeholder="e.g. 500mg BID" />
-                      </Field>
-                      <Field label="Duration (Days)">
-                        <Input height={52} type="number" value={form.duration} onChange={v => setField('duration', v)} placeholder="e.g. 7" />
-                      </Field>
+
+                      {/* 4 — Additional Notes (optional) */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                          <label style={{ fontSize: 10.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Additional Notes (optional)</label>
+                          <span style={{ fontSize: 10, color: (form.notes || '').length > 280 ? '#E53E3E' : MUTED }}>{(form.notes || '').length}/300</span>
+                        </div>
+                        <textarea
+                          value={form.notes}
+                          onChange={e => setField('notes', e.target.value)}
+                          maxLength={300}
+                          rows={3}
+                          placeholder="e.g. Take after meals. Avoid direct sunlight. Do not crush tablets."
+                          style={{
+                            width: '100%', padding: '10px 12px',
+                            border: `1px solid ${formErrors.notes ? '#E53E3E' : BORDER}`, borderRadius: 4,
+                            backgroundColor: WHITE, color: TEXT, fontSize: 13,
+                            fontFamily: "'Space Grotesk', sans-serif",
+                            outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                            transition: 'border-color 0.15s ease', lineHeight: 1.5,
+                          }}
+                          onFocus={e => (e.target.style.borderColor = formErrors.notes ? '#E53E3E' : TEAL)}
+                          onBlur={e => (e.target.style.borderColor = formErrors.notes ? '#E53E3E' : BORDER)}
+                        />
+                        {formErrors.notes && <p style={{ fontSize: 12, color: '#E53E3E', margin: '4px 0 0', fontWeight: 500 }}>{formErrors.notes}</p>}
+                      </div>
+
                       <button type="submit" disabled={submitting} style={{
                         width: '100%', height: 56,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -888,6 +1073,205 @@ function PageBtn({ children, active, disabled, onClick }) {
         transition: 'all 0.1s ease',
       }}
     >{children}</button>
+  )
+}
+
+// ─── MedicationRow ────────────────────────────────────────────────────────────
+function MedicationRow({ med, idx, totalCount, onUpdate, onRemove }) {
+  const [query, setQuery] = useState(med.selectedMed ? med.selectedMed.name : '')
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  const filtered = MEDICATIONS.filter(m =>
+    query.length === 0 || m.name.toLowerCase().includes(query.toLowerCase())
+  )
+
+  const fo = med.selectedMed?.forms.find(f => f.form === med.selectedForm) || null
+  const dosageMeta = getDosageMeta(fo)
+  const maxDosage = fo ? getMaxForForm(fo) : null
+
+  const selectMed = (m) => {
+    setQuery(m.name)
+    setShowDropdown(false)
+    const firstForm = m.forms[0]
+    onUpdate(idx, 'selectedMed', m)
+    onUpdate(idx, 'selectedForm', firstForm.form)
+    onUpdate(idx, 'dosageAmount', String(firstForm.default_dose))
+    onUpdate(idx, 'dosageError', '')
+  }
+
+  const handleFormChange = (formName) => {
+    const newFo = med.selectedMed?.forms.find(f => f.form === formName)
+    onUpdate(idx, 'selectedForm', formName)
+    if (newFo) {
+      onUpdate(idx, 'dosageAmount', String(newFo.default_dose))
+      onUpdate(idx, 'dosageError', '')
+    }
+  }
+
+  const handleDosageChange = (v) => {
+    onUpdate(idx, 'dosageAmount', v)
+    if (fo) {
+      const n = parseFloat(v)
+      const max = getMaxForForm(fo)
+      if (!v || isNaN(n) || n <= 0) {
+        onUpdate(idx, 'dosageError', `${dosageMeta.label} must be greater than 0`)
+      } else if (n > max) {
+        onUpdate(idx, 'dosageError', `Maximum is ${max} ${fo.unit} per dose`)
+      } else {
+        onUpdate(idx, 'dosageError', '')
+      }
+    }
+  }
+
+  const inputSt = {
+    width: '100%', height: 44,
+    padding: '0 12px',
+    border: `1px solid ${BORDER}`, borderRadius: 4,
+    backgroundColor: WHITE, color: TEXT, fontSize: 13,
+    fontFamily: "'Space Grotesk', sans-serif",
+    outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color 0.15s ease',
+  }
+  const lbl = (text) => (
+    <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{text}</label>
+  )
+
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, padding: 16, position: 'relative', backgroundColor: '#FAFAFA' }}>
+      {totalCount > 1 && (
+        <button
+          type="button"
+          onClick={() => onRemove(idx)}
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            width: 24, height: 24, borderRadius: '50%',
+            border: `1px solid ${BORDER}`, backgroundColor: WHITE,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: MUTED, fontSize: 14, fontWeight: 700, lineHeight: 1,
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = '#E53E3E'; e.currentTarget.style.color = '#E53E3E' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = MUTED }}
+        >×</button>
+      )}
+      {med.selectedMed?.controlled && (
+        <div style={{ marginBottom: 12, padding: '6px 10px', backgroundColor: '#FFF5F5', border: '1px solid #FCA5A5', borderRadius: 4, fontSize: 11, fontWeight: 700, color: '#DC2626' }}>
+          ⚠ Controlled Substance — regulatory logging required
+        </div>
+      )}
+
+      {/* Row 1: Medication search + Form */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <div>
+          {lbl('Medication')}
+          <div style={{ position: 'relative' }}>
+            <input
+              value={query}
+              onChange={e => {
+                setQuery(e.target.value)
+                setShowDropdown(true)
+                if (!e.target.value) {
+                  onUpdate(idx, 'selectedMed', null)
+                  onUpdate(idx, 'selectedForm', '')
+                  onUpdate(idx, 'dosageAmount', '')
+                }
+              }}
+              onFocus={e => { setShowDropdown(true); e.target.style.borderColor = TEAL }}
+              onBlur={e => { setTimeout(() => setShowDropdown(false), 150); e.target.style.borderColor = BORDER }}
+              placeholder="Search medication..."
+              style={{ ...inputSt, paddingLeft: 36 }}
+            />
+            <span className="material-symbols-outlined" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: '#9CA3AF', pointerEvents: 'none' }}>search</span>
+            {showDropdown && filtered.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 4, marginTop: 2, maxHeight: 200, overflowY: 'auto' }}>
+                {filtered.map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onMouseDown={() => selectMed(m)}
+                    style={{ width: '100%', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: 'none', borderBottom: `1px solid #F3F4F6`, backgroundColor: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: "'Space Grotesk', sans-serif" }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F0FAFA')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>{m.name}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 10, color: MUTED, fontFamily: "'JetBrains Mono', monospace" }}>{m.drug_code}</span>
+                      {m.controlled && <span style={{ fontSize: 9, color: '#DC2626', fontWeight: 700, letterSpacing: '0.05em' }}>CTRL</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div>
+          {lbl('Form')}
+          <select
+            value={med.selectedForm}
+            onChange={e => handleFormChange(e.target.value)}
+            disabled={!med.selectedMed}
+            style={{ ...inputSt, color: med.selectedMed ? TEXT : MUTED, cursor: med.selectedMed ? 'pointer' : 'not-allowed', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 32 }}
+            onFocus={e => (e.target.style.borderColor = TEAL)}
+            onBlur={e => (e.target.style.borderColor = BORDER)}
+          >
+            {med.selectedMed
+              ? med.selectedMed.forms.map(f => <option key={f.form} value={f.form}>{f.form}</option>)
+              : <option value="">— select medication first —</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      {/* Row 2: Dosage | Frequency | Duration */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div>
+          {lbl(fo ? dosageMeta.label : 'Dosage')}
+          <div style={{ position: 'relative' }}>
+            <input
+              type="number"
+              min="0"
+              step={fo && ['syrup', 'liquid'].includes(fo.form) ? '0.5' : '1'}
+              value={med.dosageAmount}
+              onChange={e => handleDosageChange(e.target.value)}
+              disabled={!fo}
+              placeholder={fo ? `max ${maxDosage}` : '—'}
+              style={{ ...inputSt, borderColor: med.dosageError ? '#E53E3E' : BORDER, paddingRight: fo ? 40 : 12, cursor: fo ? 'text' : 'not-allowed', color: fo ? TEXT : MUTED }}
+              onFocus={e => (e.target.style.borderColor = med.dosageError ? '#E53E3E' : TEAL)}
+              onBlur={e => (e.target.style.borderColor = med.dosageError ? '#E53E3E' : BORDER)}
+            />
+            {fo && (
+              <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: MUTED, fontWeight: 600, pointerEvents: 'none' }}>{fo.unit}</span>
+            )}
+          </div>
+          {med.dosageError && <p style={{ fontSize: 11, color: '#E53E3E', margin: '4px 0 0', fontWeight: 500 }}>{med.dosageError}</p>}
+        </div>
+        <div>
+          {lbl('Frequency')}
+          <input
+            value={med.frequency}
+            onChange={e => onUpdate(idx, 'frequency', e.target.value)}
+            placeholder="e.g. TID, BID"
+            style={inputSt}
+            onFocus={e => (e.target.style.borderColor = TEAL)}
+            onBlur={e => (e.target.style.borderColor = BORDER)}
+          />
+        </div>
+        <div>
+          {lbl('Duration (days)')}
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={med.duration}
+            onChange={e => onUpdate(idx, 'duration', e.target.value)}
+            placeholder="e.g. 7"
+            style={inputSt}
+            onFocus={e => (e.target.style.borderColor = TEAL)}
+            onBlur={e => (e.target.style.borderColor = BORDER)}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
