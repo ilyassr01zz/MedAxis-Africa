@@ -6,6 +6,8 @@ const ctrl = require('../controllers/prescriptions.controller');
 
 router.post('/', authenticate, authorize('DOCTOR'), ctrl.createPrescription);
 router.get('/my', authenticate, authorize('DOCTOR'), ctrl.getMyPrescriptions);
+router.get('/doctor-stats', authenticate, authorize('DOCTOR'), ctrl.getDoctorStats);
+router.get('/recent-activity', authenticate, authorize('DOCTOR'), ctrl.getRecentActivity);
 router.get('/by-patient/:cnie_hash', authenticate, authorize('PHARMACIST'), ctrl.getByPatient);
 router.get('/patient-view', authenticate, authorize('PATIENT'), ctrl.getPatientView);
 router.patch('/:rx_id/cancel', authenticate, authorize('DOCTOR'), ctrl.cancelPrescription);

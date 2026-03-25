@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../../hooks/use-auth'
-import { getMyPrescriptionsAPI, createPrescriptionAPI } from '../../api/prescriptions'
+import { getMyPrescriptionsAPI, createPrescriptionAPI, getDoctorStatsAPI, getRecentActivityAPI } from '../../api/prescriptions'
 import { searchPatientAPI } from '../../api/patients'
 import { hashCNIE } from '../../utils/hash.utils'
 
@@ -39,6 +39,18 @@ const ACTIVITY = [
   { dot: MUTED,     action: 'New prescription issued',                       sub: 'Rachid Tazi • Diazepam 5mg',                     time: 'Yesterday, 14:30'  },
   { dot: TEAL,      action: 'Prescription #XF-778BT dispensed',              sub: 'Nadia Chaoui • Pharmacie Centrale, Rabat',        time: 'Yesterday, 11:15'  },
 ]
+
+function formatTimeAgo(dateString) {
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  return 'Yesterday'
+}
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -80,20 +92,50 @@ export default function DoctorPortal() {
   const [formError, setFormError]             = useState('')
   const [prescriptions, setPrescriptions]     = useState(PRESCRIPTIONS)
   const [syncMinutes, setSyncMinutes]         = useState(2)
+  const [doctorStats, setDoctorStats]         = useState({ issuedToday: 0, pendingPickup: 0, issuedThisMonth: 0 })
+  const [recentActivity, setRecentActivity]   = useState([])
+  const [filter, setFilter]                   = useState({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })
+  const [totalCount, setTotalCount]           = useState(0)
 
   useEffect(() => {
     const interval = setInterval(() => setSyncMinutes(prev => prev + 1), 60000)
     return () => clearInterval(interval)
   }, [])
 
-  // Load real prescriptions on mount
+  // Load doctor stats and recent activity when dashboard is active
+  useEffect(() => {
+    if (activeView === 'dashboard' && token) {
+      const loadDashboard = async () => {
+        try {
+          const statsResult = await getDoctorStatsAPI(token)
+          if (statsResult.success) setDoctorStats(statsResult.data)
+        } catch (err) {
+          console.error('Failed to load stats:', err)
+        }
+        try {
+          const activityResult = await getRecentActivityAPI(token)
+          if (activityResult.success) setRecentActivity(activityResult.data.activities)
+        } catch (err) {
+          console.error('Failed to load activity:', err)
+        }
+      }
+      loadDashboard()
+    }
+  }, [activeView, token])
+
+  // Load prescriptions whenever filter or token changes (debounced 300ms)
   useEffect(() => {
     if (!token) return
-    const load = async () => {
+    const timer = setTimeout(async () => {
       try {
-        const result = await getMyPrescriptionsAPI(token)
-        if (result.success && Array.isArray(result.data)) {
-          const mapped = result.data.map(rx => ({
+        const params = new URLSearchParams()
+        if (filter.status !== 'ALL') params.append('status', filter.status)
+        if (filter.dateFrom) params.append('dateFrom', filter.dateFrom)
+        if (filter.dateTo) params.append('dateTo', filter.dateTo)
+        if (filter.search) params.append('search', filter.search)
+        const result = await getMyPrescriptionsAPI(token, params.toString())
+        if (result.success) {
+          const mapped = (result.data.prescriptions || []).map(rx => ({
             rxId:    rx.rxId || rx.rx_id,
             patient: rx.patientFirstName || rx.patientToken || 'Patient',
             med:     rx.drugName || rx.drug_name || rx.medication || '',
@@ -102,22 +144,22 @@ export default function DoctorPortal() {
             expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
             status:  rx.status || 'ACTIVE',
           }))
-          setPrescriptions(mapped.length > 0 ? mapped : PRESCRIPTIONS)
+          setPrescriptions(mapped)
+          setTotalCount(result.data.total || 0)
         }
       } catch (err) {
-        // Fall back to mock data if backend unavailable
-        console.error('Failed to load prescriptions:', err)
+        console.error('Failed to reload prescriptions:', err)
       }
-    }
-    load()
-  }, [token])
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [filter, token])
 
   const leftRef       = useRef(null)
   const rightInnerRef = useRef(null)
   const cnieRef       = useRef(null)
   const lookupRef     = useRef(null)
 
-  const totalPages = Math.ceil(TOTAL_RECORDS / 5)
+  const totalPages = Math.max(1, Math.ceil(totalCount / 5))
   const pages = useMemo(() => {
     const start = Math.max(1, currentPage - 1)
     const end   = Math.min(totalPages, currentPage + 1)
@@ -169,11 +211,16 @@ export default function DoctorPortal() {
         duration_days: parseInt(form.duration, 10),
       })
       if (result.success) {
-        // Reload prescriptions list
+        // Reload prescriptions list using current filter
         try {
-          const updated = await getMyPrescriptionsAPI(token)
-          if (updated.success && Array.isArray(updated.data)) {
-            const mapped = updated.data.map(rx => ({
+          const params = new URLSearchParams()
+          if (filter.status !== 'ALL') params.append('status', filter.status)
+          if (filter.dateFrom) params.append('dateFrom', filter.dateFrom)
+          if (filter.dateTo) params.append('dateTo', filter.dateTo)
+          if (filter.search) params.append('search', filter.search)
+          const updated = await getMyPrescriptionsAPI(token, params.toString())
+          if (updated.success) {
+            const mapped = (updated.data.prescriptions || []).map(rx => ({
               rxId:    rx.rxId || rx.rx_id,
               patient: rx.patientFirstName || rx.patientToken || 'Patient',
               med:     rx.drugName || rx.drug_name || rx.medication || '',
@@ -182,9 +229,19 @@ export default function DoctorPortal() {
               expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
               status:  rx.status || 'ACTIVE',
             }))
-            if (mapped.length > 0) setPrescriptions(mapped)
+            setPrescriptions(mapped)
+            setTotalCount(updated.data.total || 0)
           }
         } catch (_) { /* keep existing list */ }
+        // Refresh dashboard stats and activity so counts are up to date
+        try {
+          const updatedStats = await getDoctorStatsAPI(token)
+          if (updatedStats.success) setDoctorStats(updatedStats.data)
+        } catch (_) { /* non-critical */ }
+        try {
+          const updatedActivity = await getRecentActivityAPI(token)
+          if (updatedActivity.success) setRecentActivity(updatedActivity.data.activities)
+        } catch (_) { /* non-critical */ }
         return result.data.rxId || result.data.rx_id || ('RJ-' + Math.floor(100000 + Math.random() * 900000))
       }
     } catch (err) {
@@ -193,7 +250,7 @@ export default function DoctorPortal() {
       setSubmitting(false)
     }
     return null
-  }, [form, token])
+  }, [form, token, filter])
 
   // Dashboard split-view submit → mini success banner
   const handleDashSubmit = useCallback(async (e) => {
@@ -367,51 +424,53 @@ export default function DoctorPortal() {
                 </div>
               </div>
 
-              {/* Section 2 — Four stat cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, marginBottom: 32 }}>
-                {/* Card 1 */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: TEAL }}>receipt_long</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Prescriptions Today</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: TEXT, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>24</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: TEAL, marginTop: 4 }}>↗ +3 from yesterday</div>
-                  </div>
+              {/* Section 2 — Three real stat cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, maxWidth: 900, margin: '0 auto 32px' }}>
+                {/* Card 1 — Issued Today */}
+                <div
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0]
+                    setFilter({ status: 'ALL', dateFrom: today, dateTo: today, search: '' })
+                    setActiveView('prescriptions')
+                  }}
+                  style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 28, boxSizing: 'border-box', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>ISSUED TODAY</div>
+                  <div style={{ fontSize: 40, fontWeight: 700, color: TEXT, lineHeight: 1, marginBottom: 8 }}>{doctorStats.issuedToday}</div>
+                  <div style={{ fontSize: 13, color: MUTED }}>Prescriptions created today</div>
                 </div>
-                {/* Card 2 */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#F0A500' }}>warning</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Restricted Drugs</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: '#F0A500', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>03</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#F0A500', marginTop: 4 }}>⚠ Requires monitoring</div>
-                  </div>
+                {/* Card 2 — Pending Pickup */}
+                <div
+                  onClick={() => {
+                    setFilter({ status: 'ACTIVE', dateFrom: '', dateTo: '', search: '' })
+                    setActiveView('prescriptions')
+                  }}
+                  style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 28, boxSizing: 'border-box', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>PENDING PICKUP</div>
+                  <div style={{ fontSize: 40, fontWeight: 700, color: TEAL, lineHeight: 1, marginBottom: 8 }}>{doctorStats.pendingPickup}</div>
+                  <div style={{ fontSize: 13, color: MUTED }}>Issued but not yet dispensed</div>
                 </div>
-                {/* Card 3 */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: TEAL }}>check_circle</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Active Prescriptions</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: TEAL, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>18</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: MUTED, marginTop: 4 }}>Currently valid and unfilled</div>
-                  </div>
-                </div>
-                {/* Card 4 */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#F0A500' }}>schedule</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Expiring Soon</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: '#F0A500', lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>05</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#F0A500', marginTop: 4 }}>Within the next 3 days</div>
-                  </div>
+                {/* Card 3 — Issued This Month */}
+                <div
+                  onClick={() => {
+                    const now = new Date()
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+                    const today = now.toISOString().split('T')[0]
+                    setFilter({ status: 'ALL', dateFrom: firstDay, dateTo: today, search: '' })
+                    setActiveView('prescriptions')
+                  }}
+                  style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 28, boxSizing: 'border-box', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = TEAL }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>ISSUED THIS MONTH</div>
+                  <div style={{ fontSize: 40, fontWeight: 700, color: TEXT, lineHeight: 1, marginBottom: 8 }}>{doctorStats.issuedThisMonth}</div>
+                  <div style={{ fontSize: 13, color: MUTED }}>Total prescriptions this month</div>
                 </div>
               </div>
 
@@ -422,22 +481,42 @@ export default function DoctorPortal() {
                   <span style={{ fontSize: 12, color: MUTED }}>Last 24 hours</span>
                 </div>
                 <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
-                  {ACTIVITY.map((item, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0 16px', height: 52,
-                      borderBottom: i < ACTIVITY.length - 1 ? `1px solid #F3F4F6` : 'none',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.dot, flexShrink: 0 }} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.action}</div>
-                          <div style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.sub}</div>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 11, color: MUTED, flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
+                  {recentActivity.length === 0 ? (
+                    <div style={{ padding: '32px', textAlign: 'center', color: MUTED }}>
+                      <p style={{ fontSize: '15px', fontWeight: '500', margin: 0 }}>No prescriptions issued in the last 24 hours</p>
+                      <p style={{ fontSize: '13px', marginTop: '4px', marginBottom: 0 }}>Prescriptions you issue today will appear here</p>
                     </div>
-                  ))}
+                  ) : (
+                    recentActivity.map((activity, index) => (
+                      <div key={activity.id} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '16px',
+                        borderBottom: index < recentActivity.length - 1 ? '1px solid #F3F4F6' : 'none',
+                        height: '52px',
+                        boxSizing: 'border-box',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '8px', height: '8px', borderRadius: '50%',
+                            backgroundColor: activity.dot_color, flexShrink: 0
+                          }} />
+                          <div>
+                            <span style={{ fontSize: '14px', color: TEXT, fontWeight: '500' }}>
+                              {activity.description}
+                            </span>
+                            <span style={{ fontSize: '13px', color: MUTED, marginLeft: '8px' }}>
+                              {activity.detail}
+                            </span>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#9CA3AF', whiteSpace: 'nowrap', marginLeft: '16px' }}>
+                          {formatTimeAgo(activity.time)}
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -463,23 +542,125 @@ export default function DoctorPortal() {
           {activeView === 'prescriptions' && (
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
               {backBtn}
+
+              {/* FIX 5 — Active filter indicator */}
+              {(filter.status !== 'ALL' || filter.dateFrom || filter.search) && (
+                <div style={{
+                  background: '#F0FAFA',
+                  border: `1px solid ${TEAL}`,
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: '13px', color: TEAL }}>
+                    {filter.status === 'ACTIVE' && !filter.dateFrom && '● Showing: Pending pickup prescriptions'}
+                    {filter.dateFrom && filter.dateFrom === filter.dateTo && '● Showing: Prescriptions issued today'}
+                    {filter.dateFrom && filter.dateFrom !== filter.dateTo && '● Showing: Prescriptions this month'}
+                    {filter.search && `● Searching: "${filter.search}"`}
+                    {filter.status !== 'ALL' && filter.status !== 'ACTIVE' && `● Filtered by status: ${filter.status}`}
+                  </span>
+                  <button
+                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })}
+                    style={{ background: 'none', border: 'none', color: TEAL, cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', fontFamily: "'Space Grotesk', sans-serif" }}
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
+
+              {/* FIX 2 — Working filter bar */}
+              <div style={{
+                backgroundColor: WHITE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 8,
+                padding: '12px 16px',
+                marginBottom: 16,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}>
+                <input
+                  type="text"
+                  value={filter.search}
+                  onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
+                  placeholder="Search medication or RxID..."
+                  style={{
+                    width: 240, height: 40,
+                    border: `1px solid ${BORDER}`, borderRadius: 6,
+                    padding: '0 12px', fontSize: 13,
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    color: TEXT, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <select
+                  value={filter.status}
+                  onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
+                  style={{
+                    width: 160, height: 40,
+                    border: `1px solid ${BORDER}`, borderRadius: 6,
+                    padding: '0 10px', fontSize: 13,
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    color: TEXT, outline: 'none',
+                    backgroundColor: WHITE, cursor: 'pointer', boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="DISPENSED">Dispensed</option>
+                  <option value="EXPIRED">Expired</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+                <input
+                  type="date"
+                  value={filter.dateFrom}
+                  onChange={e => setFilter(f => ({ ...f, dateFrom: e.target.value }))}
+                  style={{
+                    width: 140, height: 40,
+                    border: `1px solid ${BORDER}`, borderRadius: 6,
+                    padding: '0 10px', fontSize: 13,
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    color: TEXT, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <input
+                  type="date"
+                  value={filter.dateTo}
+                  onChange={e => setFilter(f => ({ ...f, dateTo: e.target.value }))}
+                  style={{
+                    width: 140, height: 40,
+                    border: `1px solid ${BORDER}`, borderRadius: 6,
+                    padding: '0 10px', fontSize: 13,
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    color: TEXT, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                {(filter.status !== 'ALL' || filter.dateFrom || filter.dateTo || filter.search) && (
+                  <button
+                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })}
+                    style={{
+                      height: 40, padding: '0 16px',
+                      background: 'none', border: `1px solid ${BORDER}`,
+                      borderRadius: 6, fontSize: 13, fontWeight: 600, color: MUTED,
+                      cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+
               <section style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ padding: '14px 20px 12px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, color: MUTED }}>description</span>
-                    <h2 style={{ fontSize: 13, fontWeight: 800, color: TEXT, textTransform: 'uppercase', letterSpacing: '0.09em', margin: 0 }}>My Prescription History</h2>
-                    <span style={{ fontSize: 11, color: MUTED, backgroundColor: '#F3F4F6', borderRadius: 4, padding: '2px 8px', fontWeight: 600 }}>{TOTAL_RECORDS} total</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {['filter_list', 'file_download'].map(icon => (
-                      <button key={icon} style={{ ...iconBtn, width: 30, height: 30, border: `1px solid ${BORDER}`, borderRadius: 4 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: MUTED }}>{icon}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ padding: '14px 20px 12px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, color: MUTED }}>description</span>
+                  <h2 style={{ fontSize: 13, fontWeight: 800, color: TEXT, textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 0 10px' }}>My Prescription History</h2>
+                  <span style={{ fontSize: 11, color: MUTED, backgroundColor: '#F3F4F6', borderRadius: 4, padding: '2px 8px', fontWeight: 600, marginLeft: 10 }}>{totalCount} results</span>
                 </div>
                 <RxTable expanded prescriptions={prescriptions} />
-                <RxPagination currentPage={currentPage} totalPages={totalPages} pages={pages} onPageChange={setCurrentPage} total={TOTAL_RECORDS} />
+                <RxPagination currentPage={currentPage} totalPages={totalPages} pages={pages} onPageChange={setCurrentPage} total={totalCount} showing={prescriptions.length} />
               </section>
             </div>
           )}
@@ -783,10 +964,10 @@ function RxTable({ compact, expanded, prescriptions: rows }) {
   )
 }
 
-function RxPagination({ currentPage, totalPages, pages, onPageChange, total }) {
+function RxPagination({ currentPage, totalPages, pages, onPageChange, total, showing }) {
   return (
     <div style={{ padding: '10px 16px', borderTop: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FAFAFA', flexShrink: 0 }}>
-      <span style={{ fontSize: 11, color: MUTED }}>Showing 5 of {total} records</span>
+      <span style={{ fontSize: 11, color: MUTED }}>Showing {showing ?? 0} of {total} records</span>
       <div style={{ display: 'flex', gap: 3 }}>
         <PageBtn disabled={currentPage === 1} onClick={() => onPageChange(p => Math.max(1, p - 1))}>
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chevron_left</span>
