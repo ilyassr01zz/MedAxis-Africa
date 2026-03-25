@@ -5,7 +5,7 @@
 
 ## What This Project Is
 
-MedAxis is a national prescription trust infrastructure for Morocco and Africa.
+MedAxis is a national prescription trust infrastructure for Morocco and Africa..
 It anchors every prescription to a verified Digital ID via MOSIP eSignet.
 It is NOT an EMR system. It does NOT store clinical records or biometrics.
 It creates a tamper-proof national prescription ledger.
