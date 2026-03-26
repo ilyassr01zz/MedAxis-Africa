@@ -1,6 +1,6 @@
 # MedAxis Africa — Todo
 
-## Priority: Build in This Exact Order
+## Priority: Build in This Exact Order:
 
 ### PHASE 1 — Foundation (Days 1-3)
 - [ ] Initialize React Vite frontend in /frontend
