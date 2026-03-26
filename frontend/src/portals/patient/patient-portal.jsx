@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../../hooks/use-auth'
-import { getPatientViewAPI } from '../../api/prescriptions'
+import { getPatientViewAPI, disputePrescriptionAPI } from '../../api/prescriptions'
 
 // ─── Inline SVG icons ──────────────────────────────────────────────────────────
 
@@ -62,41 +62,41 @@ const ChatIcon = () => (
 
 const STATUS_CONFIG = {
   ACTIVE: {
-    label: 'ACTIVE TREATMENT',
+    label: 'AWAITING PICKUP',
     borderColor: '#0D7C7C',
     dotColor: '#0D7C7C',
+    textColor: '#0D7C7C',
+    description: 'Ready to be collected at pharmacy',
     buttonColor: '#0D7C7C',
     buttonLabel: 'View PDF',
     ButtonIcon: PdfIcon,
   },
   DISPENSED: {
-    label: 'COMPLETED',
-    borderColor: '#6B7280',
-    dotColor: '#6B7280',
+    label: 'DISPENSED',
+    borderColor: '#9CA3AF',
+    dotColor: '#9CA3AF',
+    textColor: '#6B7280',
+    description: 'Medication collected at pharmacy',
     buttonColor: '#6B7280',
     buttonLabel: 'History',
     ButtonIcon: HistoryIcon,
   },
   COMPLETED: {
     label: 'COMPLETED',
-    borderColor: '#6B7280',
-    dotColor: '#6B7280',
-    buttonColor: '#6B7280',
-    buttonLabel: 'History',
-    ButtonIcon: HistoryIcon,
-  },
-  CANCELLED: {
-    label: 'CANCELLED',
-    borderColor: '#6B7280',
-    dotColor: '#6B7280',
+    borderColor: '#9CA3AF',
+    dotColor: '#9CA3AF',
+    textColor: '#6B7280',
+    description: 'Medication collected at pharmacy',
     buttonColor: '#6B7280',
     buttonLabel: 'History',
     ButtonIcon: HistoryIcon,
   },
   PARTIALLY_DISPENSED: {
-    label: 'PARTIALLY FILLED',
+    label: 'PARTIALLY COLLECTED',
     borderColor: '#F0A500',
     dotColor: '#F0A500',
+    textColor: '#F0A500',
+    description: 'Partial quantity collected',
     buttonColor: '#F0A500',
     buttonLabel: 'Request Refill',
     ButtonIcon: RefillIcon,
@@ -105,32 +105,60 @@ const STATUS_CONFIG = {
     label: 'PENDING RENEWAL',
     borderColor: '#F0A500',
     dotColor: '#F0A500',
+    textColor: '#F0A500',
+    description: 'Awaiting renewal',
     buttonColor: '#F0A500',
     buttonLabel: 'Request Refill',
     ButtonIcon: RefillIcon,
   },
   EXPIRED: {
-    label: 'EXPIRED RECORD',
+    label: 'EXPIRED',
     borderColor: '#E53E3E',
     dotColor: '#E53E3E',
+    textColor: '#E53E3E',
+    description: 'Prescription expired without pickup',
     buttonColor: '#E53E3E',
     buttonLabel: 'Urgent Consult',
     ButtonIcon: UrgentIcon,
   },
-  FLAGGED: {
-    label: 'FLAGGED',
-    borderColor: '#E53E3E',
-    dotColor: '#E53E3E',
-    buttonColor: '#E53E3E',
-    buttonLabel: 'Urgent Consult',
-    ButtonIcon: UrgentIcon,
+  CANCELLED: {
+    label: 'CANCELLED',
+    borderColor: '#9CA3AF',
+    dotColor: '#9CA3AF',
+    textColor: '#6B7280',
+    description: 'Cancelled by your doctor',
+    buttonColor: '#6B7280',
+    buttonLabel: 'History',
+    ButtonIcon: HistoryIcon,
   },
   DISPUTED: {
     label: 'DISPUTED',
     borderColor: '#E53E3E',
     dotColor: '#E53E3E',
+    textColor: '#E53E3E',
+    description: 'Reported — under regulatory review',
     buttonColor: '#E53E3E',
-    buttonLabel: 'Urgent Consult',
+    buttonLabel: 'View Details',
+    ButtonIcon: UrgentIcon,
+  },
+  REVIEWED: {
+    label: 'REVIEWED',
+    borderColor: '#9CA3AF',
+    dotColor: '#9CA3AF',
+    textColor: '#6B7280',
+    description: 'Dispute reviewed by Ministry of Health',
+    buttonColor: '#6B7280',
+    buttonLabel: 'History',
+    ButtonIcon: HistoryIcon,
+  },
+  FLAGGED: {
+    label: 'FLAGGED',
+    borderColor: '#E53E3E',
+    dotColor: '#E53E3E',
+    textColor: '#E53E3E',
+    description: 'Flagged for review',
+    buttonColor: '#E53E3E',
+    buttonLabel: 'View Details',
     ButtonIcon: UrgentIcon,
   },
 }
@@ -181,8 +209,8 @@ const FILTER_OPTIONS = ['All', 'Active', 'Completed', 'Pending', 'Expired']
 
 // ─── PrescriptionCard ──────────────────────────────────────────────────────────
 
-const PrescriptionCard = ({ prescription, onAction }) => {
-  const config = STATUS_CONFIG[prescription.status] || STATUS_CONFIG.ACTIVE
+const PrescriptionCard = ({ prescription, onAction, onReport }) => {
+  const config = STATUS_CONFIG[prescription.displayStatus || prescription.status] || STATUS_CONFIG.ACTIVE
   const { ButtonIcon } = config
 
   return (
@@ -306,6 +334,31 @@ const PrescriptionCard = ({ prescription, onAction }) => {
           <ButtonIcon />
           {config.buttonLabel}
         </button>
+
+        {['ACTIVE', 'DISPENSED', 'PARTIALLY_DISPENSED'].includes(prescription.status) && !prescription.is_disputed && !prescription.is_reviewed && (
+          <button
+            onClick={() => onReport(prescription)}
+            style={{
+              background: 'none',
+              border: '1px solid #E53E3E',
+              color: '#E53E3E',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              marginTop: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontFamily: "'Space Grotesk', sans-serif"
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            ⚠ Report this prescription
+          </button>
+        )}
       </div>
     </article>
   )
@@ -320,6 +373,11 @@ export default function PatientPortal() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [visibleCount, setVisibleCount]         = useState(4)
   const [prescriptionList, setPrescriptionList] = useState([])
+  const [disputeModal, setDisputeModal]         = useState({ open: false, prescription: null })
+  const [disputeReason, setDisputeReason]       = useState('')
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false)
+  const [disputeSuccess, setDisputeSuccess]     = useState(false)
+  const [disputeError, setDisputeError]         = useState('')
 
   useEffect(() => {
     if (!token) return
@@ -339,13 +397,17 @@ export default function PatientPortal() {
         console.log('Patient view result:', result)
         if (result.success && result.data?.prescriptions) {
           const mapped = result.data.prescriptions.map(rx => ({
-            id:           rx.rx_id || rx.rxId || rx.id,
-            status:       rx.status || 'ACTIVE',
-            drug:         rx.drug_name || rx.drugName || '',
-            details:      [rx.dosage, rx.frequency, rx.duration_days ? `${rx.duration_days} days` : null].filter(Boolean).join(' • '),
-            prescribedBy: rx.doctor?.user?.first_name ? `Dr. ${rx.doctor.user.first_name}` : rx.doctorName || 'Unknown Doctor',
-            date:         rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
-            dateLabel:    rx.status === 'ACTIVE' ? 'DATE ISSUED' : rx.status === 'EXPIRED' ? 'EXPIRY DATE' : 'DATE ISSUED',
+            id:            rx.rx_id || rx.rxId || rx.id,
+            rx_id:         rx.rx_id || rx.rxId || rx.id,
+            status:        rx.status || 'ACTIVE',
+            is_reviewed:   rx.is_reviewed || false,
+            is_disputed:   rx.is_disputed || false,
+            displayStatus: rx.is_reviewed ? 'REVIEWED' : (rx.status || 'ACTIVE'),
+            drug:          rx.drug_name || rx.drugName || '',
+            details:       [rx.dosage, rx.frequency, rx.duration_days ? `${rx.duration_days} days` : null].filter(Boolean).join(' • '),
+            prescribedBy:  rx.doctor?.user?.first_name ? `Dr. ${rx.doctor.user.first_name}` : rx.doctorName || 'Unknown Doctor',
+            date:          rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+            dateLabel:     rx.status === 'ACTIVE' ? 'DATE ISSUED' : rx.status === 'EXPIRED' ? 'EXPIRY DATE' : 'DATE ISSUED',
           }))
           setPrescriptionList(mapped)
           console.log('Set prescriptions:', mapped.length)
@@ -389,6 +451,49 @@ export default function PatientPortal() {
     setActiveFilter(option)
     setShowFilterDropdown(false)
   }, [])
+
+  const openDisputeModal = (prescription) => {
+    setDisputeModal({ open: true, prescription })
+    setDisputeReason('')
+    setDisputeSuccess(false)
+    setDisputeError('')
+  }
+
+  const closeDisputeModal = () => {
+    setDisputeModal({ open: false, prescription: null })
+    setDisputeReason('')
+    setDisputeSuccess(false)
+    setDisputeError('')
+  }
+
+  const submitDispute = async () => {
+    if (!disputeReason.trim()) {
+      setDisputeError('Please provide a brief explanation')
+      return
+    }
+    if (disputeReason.trim().length < 10) {
+      setDisputeError('Please provide at least 10 characters')
+      return
+    }
+    setDisputeSubmitting(true)
+    setDisputeError('')
+    try {
+      const result = await disputePrescriptionAPI(token, disputeModal.prescription.rx_id || disputeModal.prescription.rxId, disputeReason)
+      if (result.success) {
+        setDisputeSuccess(true)
+        setPrescriptionList(prev => prev.map(p =>
+          (p.rx_id || p.rxId) === (disputeModal.prescription.rx_id || disputeModal.prescription.rxId)
+            ? { ...p, status: 'DISPUTED' }
+            : p
+        ))
+        setTimeout(() => closeDisputeModal(), 3000)
+      }
+    } catch (err) {
+      setDisputeError(err.response?.data?.error || 'Failed to submit report')
+    } finally {
+      setDisputeSubmitting(false)
+    }
+  }
 
   return (
     /* Full-screen takeover — escapes the shared Layout wrapper so there is only ONE navbar */
@@ -628,7 +733,7 @@ export default function PatientPortal() {
         ) : visiblePrescriptions.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {visiblePrescriptions.map(rx => (
-              <PrescriptionCard key={rx.id} prescription={rx} onAction={handleAction} />
+              <PrescriptionCard key={rx.id} prescription={rx} onAction={handleAction} onReport={openDisputeModal} />
             ))}
           </div>
         ) : (
@@ -685,6 +790,155 @@ export default function PatientPortal() {
           </p>
         </div>
       </main>
+
+      {/* ── Dispute modal ────────────────────────────────────────────── */}
+      {disputeModal.open && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '480px',
+            border: '1px solid #E5E7EB'
+          }}>
+            {disputeSuccess ? (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
+                <h3 style={{ color: '#0D7C7C', fontSize: '20px', fontWeight: '700', marginBottom: '8px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Report Submitted
+                </h3>
+                <p style={{ color: '#6B7280', fontSize: '14px', lineHeight: '1.6', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Your report has been sent to the Ministry of Health regulatory team.
+                  Prescription #{disputeModal.prescription?.rx_id || disputeModal.prescription?.rxId}
+                  is now marked as DISPUTED and under review.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1A1A2E', marginBottom: '4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                      Report Prescription
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                      This report will be sent directly to the Ministry of Health
+                    </p>
+                  </div>
+                  <button onClick={closeDisputeModal} style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#6B7280', fontSize: '20px', lineHeight: 1, padding: '4px'
+                  }}>✕</button>
+                </div>
+
+                <div style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ fontSize: '13px', color: '#E53E3E', fontWeight: '600', marginBottom: '4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Prescription: #{disputeModal.prescription?.rx_id || disputeModal.prescription?.rxId}
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {disputeModal.prescription?.drug} — {disputeModal.prescription?.prescribedBy || 'Unknown Doctor'}
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block', fontSize: '11px', fontWeight: '600',
+                    color: '#6B7280', letterSpacing: '0.08em', textTransform: 'uppercase',
+                    marginBottom: '8px', fontFamily: "'Space Grotesk', sans-serif"
+                  }}>
+                    Reason for reporting
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {[
+                      'I never requested this prescription',
+                      'I never authorized this dispensing',
+                      'This prescription was issued without my consent',
+                      'Other'
+                    ].map(reason => (
+                      <label key={reason} style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        cursor: 'pointer', fontSize: '14px', color: '#1A1A2E',
+                        fontFamily: "'Space Grotesk', sans-serif"
+                      }}>
+                        <input
+                          type="radio"
+                          name="disputeReason"
+                          value={reason}
+                          checked={disputeReason.startsWith(reason)}
+                          onChange={() => setDisputeReason(reason + '. ')}
+                          style={{ accentColor: '#0D7C7C' }}
+                        />
+                        {reason}
+                      </label>
+                    ))}
+                  </div>
+                  <textarea
+                    value={disputeReason}
+                    onChange={e => setDisputeReason(e.target.value)}
+                    placeholder="Add additional details (optional)..."
+                    maxLength={200}
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '6px',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      color: '#1A1A2E',
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      resize: 'vertical',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#0D7C7C'}
+                    onBlur={e => e.target.style.borderColor = '#E5E7EB'}
+                  />
+                  <p style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px', textAlign: 'right', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {disputeReason.length}/200 characters
+                  </p>
+                </div>
+
+                {disputeError && (
+                  <p style={{ color: '#E53E3E', fontSize: '13px', marginBottom: '16px', fontFamily: "'Space Grotesk', sans-serif" }}>{disputeError}</p>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button onClick={closeDisputeModal} style={{
+                    flex: 1, height: '44px',
+                    background: 'none', border: '1px solid #E5E7EB',
+                    borderRadius: '8px', cursor: 'pointer',
+                    fontSize: '14px', fontWeight: '600', color: '#6B7280',
+                    fontFamily: "'Space Grotesk', sans-serif"
+                  }}>
+                    Cancel
+                  </button>
+                  <button onClick={submitDispute} disabled={disputeSubmitting} style={{
+                    flex: 2, height: '44px',
+                    background: disputeSubmitting ? '#9CA3AF' : '#E53E3E',
+                    border: 'none', borderRadius: '8px',
+                    cursor: disputeSubmitting ? 'not-allowed' : 'pointer',
+                    fontSize: '14px', fontWeight: '700', color: '#FFFFFF',
+                    fontFamily: "'Space Grotesk', sans-serif"
+                  }}>
+                    {disputeSubmitting ? 'Submitting...' : 'Submit Report to Ministry of Health'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Floating chat button ──────────────────────────────────────── */}
       <button

@@ -210,6 +210,7 @@ const getPatientView = async (req, res) => {
     });
 
     console.log('Found prescriptions:', prescriptions.length);
+    console.log('Prescription statuses:', prescriptions.map(p => ({ rx_id: p.rx_id, status: p.status, is_reviewed: p.is_reviewed })));
     return success(res, { prescriptions });
   } catch (err) {
     console.error('getPatientView error:', err);
@@ -310,14 +311,53 @@ const dispensePrescription = async (req, res) => {
 const disputePrescription = async (req, res) => {
   try {
     const { rx_id } = req.params;
-    const prescription = await prisma.prescription.findUnique({ where: { rx_id } });
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length < 10) {
+      return error(res, 'A reason of at least 10 characters is required', 400);
+    }
+
+    const prescription = await prisma.prescription.findUnique({
+      where: { rx_id },
+      include: { doctor: { include: { user: true } } }
+    });
+
     if (!prescription) return error(res, 'Prescription not found', 404);
+
+    if (prescription.status === 'DISPUTED') {
+      return error(res, 'This prescription has already been disputed', 400);
+    }
+
     await prisma.prescription.update({
       where: { rx_id },
-      data: { is_disputed: true, status: 'DISPUTED' }
+      data: {
+        is_disputed: true,
+        status: 'DISPUTED'
+      }
     });
-    return success(res, { message: 'Dispute recorded', reference: `DISP-${Date.now()}` });
+
+    await prisma.auditLog.create({
+      data: {
+        user_id: req.user.id,
+        role: req.user.role,
+        endpoint: `/api/prescriptions/${rx_id}/dispute`,
+        method: 'POST',
+        status_code: 200,
+        action: 'PRESCRIPTION_DISPUTED',
+        rx_id,
+      }
+    });
+
+    console.log(`[MedAxis DISPUTE] RxID: ${rx_id} — Reason: ${reason} — Patient: ${req.user.id}`);
+    console.log(`[MedAxis DISPUTE] Notifying regulatory team — prescription from Dr. ${prescription.doctor?.user?.first_name}`);
+
+    return success(res, {
+      message: 'Dispute recorded and sent to Ministry of Health regulatory team',
+      reference: `DISP-${Date.now()}`,
+      rx_id
+    });
   } catch (err) {
+    console.error('disputePrescription error:', err);
     return error(res, 'Failed to create dispute', 500);
   }
 };

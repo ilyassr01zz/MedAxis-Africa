@@ -173,10 +173,10 @@ export const dispensePrescriptionAPI = (token, rx_id, data) =>
 // POST /api/prescriptions/:rx_id/dispute
 // ---------------------------------------------------------------------------
 
-export async function disputePrescriptionAPI(token, rx_id) {
+export async function disputePrescriptionAPI(token, rx_id, reason) {
   const response = await axios.post(
     `${API_URL}/prescriptions/${rx_id}/dispute`,
-    {},
+    { reason },
     authHeader(token)
   );
   return response.data;

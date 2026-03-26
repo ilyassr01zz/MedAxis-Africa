@@ -96,6 +96,7 @@ model Prescription {
   status            String   @default("ACTIVE")
   is_flagged        Boolean  @default(false)
   is_disputed       Boolean  @default(false)
+  is_reviewed       Boolean  @default(false)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
