@@ -1,8 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+if (!process.env.JWT_SECRET) {
+  console.error('Missing JWT_SECRET in backend/.env. Auth cannot start safely.');
+  process.exit(1);
+}
 
 const app = express();
 

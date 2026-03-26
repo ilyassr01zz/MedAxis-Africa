@@ -40,9 +40,7 @@ const createPrescription = async (req, res) => {
         frequency,
         duration_days: parseInt(duration_days),
         expiry_date,
-        status: 'ACTIVE',
-        medications_json: medications && medications.length > 0 ? JSON.stringify(medications) : null,
-        notes: notes || null,
+        status: 'ACTIVE'
       }
     });
     await prisma.auditLog.create({
