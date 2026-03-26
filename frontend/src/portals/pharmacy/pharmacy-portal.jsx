@@ -1,8 +1,15 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/use-auth'
 import Toast, { useToast } from '../../components/toast'
 import { getByPatientCNIEAPI } from '../../api/prescriptions'
+import {
+  getDispensedTodayAPI,
+  getPendingVerificationsAPI,
+  getStockAlertsAPI,
+  getTodaySummaryAPI,
+  getRecentPharmacyActivityAPI,
+} from '../../api/pharmacy'
 import { hashCNIE } from '../../utils/hash.utils'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -14,8 +21,31 @@ const MUTED     = '#6B7280'
 const BG_PAGE   = '#F5F7F5'
 const WHITE     = '#FFFFFF'
 const ORANGE    = '#F0A500'
+const RED       = '#E53E3E'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+function formatActivityTime(isoString) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  const now = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  const timeStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  if (isToday) return timeStr
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate()
+  if (isYesterday) return `Yesterday, ${timeStr}`
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${months[date.getMonth()]} ${date.getDate()}, ${timeStr}`
+}
+
 function getGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -31,14 +61,7 @@ function getFormattedDate() {
 }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-const ACTIVITY = [
-  { dot: TEAL,   action: 'Prescription #RX-889-2024-01 dispensed',  sub: 'Patient: Ahmed B. • Amoxicillin 500mg',                time: '1 hour ago'       },
-  { dot: ORANGE, action: 'Identity verification failed',             sub: 'Patient: Unknown • OTP expired after 3 attempts',       time: '2 hours ago'      },
-  { dot: TEAL,   action: 'Prescription #RX-889-2024-03 dispensed',  sub: 'Patient: Fatima Z. • Metformin 1000mg',                 time: '3 hours ago'      },
-  { dot: MUTED,  action: 'Prescription #RX-889-2024-02 flagged',    sub: 'Suspicious quantity requested • Sent to regulator',     time: '5 hours ago'      },
-  { dot: TEAL,   action: 'Prescription #RX-889-2024-05 dispensed',  sub: 'Patient: Hassan B. • Lisinopril 10mg',                  time: 'Yesterday, 16:45' },
-]
-
+// TODO: replace with live data
 const PATIENT_PRESCRIPTIONS = [
   { rxId: 'RX-889-2024-01', doctor: 'Dr. Yassine Alaoui',   specialty: 'Cardiology',       med: 'Amoxicillin 500mg', issued: 'Oct 24, 2023', expiry: 'Nov 03, 2023', status: 'VALID'   },
   { rxId: 'RX-889-2024-02', doctor: 'Dr. Fatima Zahra',     specialty: 'Pediatrics',       med: 'Metformin 1000mg',  issued: 'Oct 23, 2023', expiry: 'Nov 22, 2023', status: 'PENDING' },
@@ -188,10 +211,68 @@ function Pagination({ current, total, onPrev, onNext, label }) {
   )
 }
 
+function ClickableStatCard({ icon, iconColor, label, value, subLabel, subColor, onClick }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        backgroundColor: WHITE,
+        border: `1px solid ${hov ? TEAL : BORDER}`,
+        borderRadius: 8, padding: 20, height: 120,
+        boxSizing: 'border-box', display: 'flex',
+        flexDirection: 'column', justifyContent: 'space-between',
+        cursor: 'pointer', transition: 'border-color 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 18, color: iconColor }}>{icon}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+      </div>
+      <div>
+        <div style={{ fontSize: 36, fontWeight: 700, color: iconColor, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
+        <div style={{ fontSize: 9, fontWeight: 600, color: subColor, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{subLabel}</div>
+      </div>
+    </div>
+  )
+}
+
+function ActivityRow({ activity, isLast, onClick }) {
+  const [hov, setHov] = useState(false)
+  const clickable = !!activity.rx_id
+  return (
+    <div
+      onClick={clickable ? onClick : undefined}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px',
+        borderBottom: isLast ? 'none' : `1px solid ${BORDER}`,
+        cursor: clickable ? 'pointer' : 'default',
+        backgroundColor: clickable && hov ? '#F9FAFB' : WHITE,
+        transition: 'background-color 0.12s',
+      }}
+    >
+      <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: activity.dot_color, flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: TEXT }}>{activity.description}</div>
+        {activity.rx_id && (
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>{activity.rx_id}</div>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {formatActivityTime(activity.time)}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PharmacyPortal() {
   const navigate = useNavigate()
-  const { logout, token } = useAuth()
+  const { logout, token, user } = useAuth()
   const { visible: toastVisible, showToast } = useToast()
 
   const [activeView, setActiveView]               = useState('dashboard')
@@ -205,7 +286,48 @@ export default function PharmacyPortal() {
   const [queuePage, setQueuePage]                 = useState(1)
   const [historyPage, setHistoryPage]             = useState(1)
 
+  const [dashStats, setDashStats]           = useState({ dispensedToday: null, pendingVerifications: null, stockAlerts: null })
+  const [todaySummary, setTodaySummary]     = useState({ patients_served: null, prescriptions_pending: null, otps_pending: null })
+  const [recentActivity, setRecentActivity] = useState([])
+  const [dashLoading, setDashLoading]       = useState(false)
+  const [dashError, setDashError]           = useState('')
+
   const cnieInputRef = useRef(null)
+
+  useEffect(() => {
+    if (activeView !== 'dashboard' || !token) return
+    let cancelled = false
+    setDashLoading(true)
+    setDashError('')
+    Promise.all([
+      getDispensedTodayAPI(token),
+      getPendingVerificationsAPI(token),
+      getStockAlertsAPI(token),
+      getTodaySummaryAPI(token),
+      getRecentPharmacyActivityAPI(token),
+    ])
+      .then(([dispensed, pending, stock, summary, activity]) => {
+        if (cancelled) return
+        setDashStats({
+          dispensedToday:        dispensed?.data?.total_items ?? 0,
+          pendingVerifications:  pending?.data?.count ?? 0,
+          stockAlerts:           stock?.data?.alert_count ?? 0,
+        })
+        setTodaySummary({
+          patients_served:       summary?.data?.patients_served ?? 0,
+          prescriptions_pending: summary?.data?.prescriptions_pending ?? 0,
+          otps_pending:          summary?.data?.otps_pending ?? 0,
+        })
+        setRecentActivity(activity?.data?.activities ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setDashError('Failed to load dashboard data')
+      })
+      .finally(() => {
+        if (!cancelled) setDashLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [activeView, token])
 
   const handleNav = useCallback((key) => {
     if (key === 'dispense-history') {
@@ -368,7 +490,7 @@ export default function PharmacyPortal() {
               {/* Section 1 — Greeting */}
               <div style={{ marginBottom: 32 }}>
                 <h2 style={{ fontSize: 24, fontWeight: 700, color: TEXT, margin: '0 0 4px', letterSpacing: '-0.02em' }}>
-                  {getGreeting()}, Pharmacist Youssef
+                  {getGreeting()}, {user?.first_name ? `Pharmacist ${user.first_name}` : 'Pharmacist'}
                 </h2>
                 <div style={{ fontSize: 13, color: MUTED, marginBottom: 2 }}>{getFormattedDate()}</div>
                 <div style={{ fontSize: 13, color: MUTED }}>
@@ -377,107 +499,191 @@ export default function PharmacyPortal() {
                 </div>
               </div>
 
-              {/* Section 2 — Four stat cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, marginBottom: 32 }}>
-                {/* Card 1 — Dispenses Today */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: TEAL }}>medication</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Dispenses Today</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: TEXT, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>42</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: TEAL, marginTop: 4 }}>↗ +12% from yesterday</div>
-                  </div>
-                </div>
-                {/* Card 2 — Pending Verifications */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: ORANGE }}>warning</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Pending Verifications</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: ORANGE, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>07</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: ORANGE, marginTop: 4 }}>⚠ Requires attention</div>
-                  </div>
-                </div>
-                {/* Card 3 — Stock Alerts */}
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: ORANGE }}>inventory_2</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Stock Alerts</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 36, fontWeight: 700, color: ORANGE, lineHeight: 1, fontFamily: "'JetBrains Mono', monospace" }}>03</div>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: ORANGE, marginTop: 4 }}>⚠ REORDER SOON</div>
-                  </div>
-                </div>
-                {/* Card 4 — Network Status (solid teal) */}
-                <div style={{ backgroundColor: TEAL, border: `1px solid ${TEAL}`, borderRadius: 8, padding: 20, height: 120, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Network Status</span>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }}>language</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#4ADE80', flexShrink: 0 }} />
-                    <span style={{ fontSize: 20, fontWeight: 700, color: WHITE, letterSpacing: '0.04em' }}>OPERATIONAL</span>
-                  </div>
-                </div>
+              {/* Error banner */}
+              {dashError && !dashLoading && (
+                <div style={{ fontSize: 12, color: RED, marginBottom: 16 }}>{dashError}</div>
+              )}
+
+              {/* Section 2 — Three stat cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 28 }}>
+
+                {/* Card A — Dispenses Today */}
+                <ClickableStatCard
+                  icon="medication"
+                  iconColor={TEXT}
+                  label="Dispenses Today"
+                  value={dashLoading ? '—' : String(dashStats.dispensedToday ?? 0).padStart(2, '0')}
+                  subLabel="MEDICATION ITEMS"
+                  subColor={MUTED}
+                  onClick={() => setActiveView('dispense-history')}
+                />
+
+                {/* Card B — Pending Verifications */}
+                <ClickableStatCard
+                  icon="pending_actions"
+                  iconColor={ORANGE}
+                  label="Pending Verifications"
+                  value={dashLoading ? '—' : String(dashStats.pendingVerifications ?? 0).padStart(2, '0')}
+                  subLabel="AWAITING CHECK"
+                  subColor={ORANGE}
+                  onClick={() => setActiveView('active-queue')}
+                />
+
+                {/* Card C — Stock Alerts */}
+                <ClickableStatCard
+                  icon="inventory_2"
+                  iconColor={ORANGE}
+                  label="Stock Alerts"
+                  value={dashLoading ? '—' : String(dashStats.stockAlerts ?? 0).padStart(2, '0')}
+                  subLabel="LOW SUPPLY ITEMS"
+                  subColor={ORANGE}
+                  onClick={() => setActiveView('stock-alerts')}
+                />
+
               </div>
 
-              {/* Section 3 — Recent Activity */}
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>Recent Activity</span>
-                  <span style={{ fontSize: 12, color: MUTED }}>Last 24 hours</span>
-                </div>
-                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
-                  {ACTIVITY.map((item, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0 16px', height: 52,
-                      borderBottom: i < ACTIVITY.length - 1 ? '1px solid #F3F4F6' : 'none',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: item.dot, flexShrink: 0 }} />
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.action}</div>
-                          <div style={{ fontSize: 11, color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.sub}</div>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 11, color: MUTED, flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
-                    </div>
-                  ))}
-                </div>
+              {/* Section 3 — Quick Actions Bar */}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 28 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 8 }}>QUICK ACTIONS</span>
+                <GhostBtn onClick={() => setActiveView('patient-lookup')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15, lineHeight: 1 }}>person_search</span>
+                  Lookup Patient
+                </GhostBtn>
+                <GhostBtn onClick={() => setActiveView('active-queue')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15, lineHeight: 1 }}>queue</span>
+                  Active Queue
+                </GhostBtn>
+                <GhostBtn onClick={() => setActiveView('dispense-history')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15, lineHeight: 1 }}>history</span>
+                  Dispense History
+                </GhostBtn>
               </div>
 
-              {/* Section 4 — Quick Action Card */}
+              {/* Section 4 — Today's Activity Summary Strip */}
               <div style={{
-                backgroundColor: '#F0FAFA', border: `1px solid ${TEAL}`, borderRadius: 8,
-                padding: '0 20px', height: 72,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8,
+                padding: '14px 20px', marginBottom: 28,
+                display: 'flex', alignItems: 'center', gap: 0,
               }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: TEAL }}>Ready to serve a patient?</div>
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>Enter patient CNIE to retrieve prescriptions →</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginRight: 28 }}>
+                  TODAY'S SUMMARY
                 </div>
-                <button onClick={() => handleNav('patient-lookup')} style={{
-                  height: 40, padding: '0 20px',
-                  backgroundColor: TEAL, color: WHITE,
-                  border: 'none', borderRadius: 4,
-                  fontSize: 12, fontWeight: 700, letterSpacing: '0.07em',
-                  cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
-                  whiteSpace: 'nowrap', transition: 'background-color 0.15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_DARK }}
-                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
-                >
-                  LOOKUP PATIENT
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: TEXT, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {dashLoading ? '—' : todaySummary.patients_served}
+                  </div>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.07em' }}>PATIENTS SERVED</div>
+                </div>
+                <div style={{ width: 1, height: 32, backgroundColor: BORDER, marginLeft: 28, marginRight: 28 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: TEXT, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {dashLoading ? '—' : todaySummary.prescriptions_pending}
+                  </div>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.07em' }}>RX PENDING</div>
+                </div>
+                <div style={{ width: 1, height: 32, backgroundColor: BORDER, marginLeft: 28, marginRight: 28 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: TEXT, fontFamily: "'JetBrains Mono', monospace" }}>
+                    {dashLoading ? '—' : todaySummary.otps_pending}
+                  </div>
+                  <div style={{ fontSize: 9, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.07em' }}>OTPS PENDING</div>
+                </div>
+              </div>
+
+              {/* Section 5 — Recent Activity */}
+              <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${BORDER}` }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Recent Activity</span>
+                  <GhostBtn height={28} onClick={() => setActiveView('activity-log')}>VIEW ALL</GhostBtn>
+                </div>
+                {dashLoading && (
+                  <div style={{ padding: '24px 20px', fontSize: 13, color: MUTED }}>Loading activity...</div>
+                )}
+                {!dashLoading && dashError && (
+                  <div style={{ padding: '24px 20px', fontSize: 13, color: RED }}>Could not load activity</div>
+                )}
+                {!dashLoading && !dashError && recentActivity.length === 0 && (
+                  <div style={{ padding: '24px 20px', fontSize: 13, color: MUTED }}>No recent activity</div>
+                )}
+                {!dashLoading && !dashError && recentActivity.map((activity, i) => (
+                  <ActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    isLast={i === recentActivity.length - 1}
+                    onClick={() => navigate(`/pharmacy/verify/${activity.rx_id}`)}
+                  />
+                ))}
               </div>
 
             </div>
           )}
+
+          {/* ══ VIEW: Stock Alerts ════════════════════════════════════════ */}
+          {activeView === 'stock-alerts' && (
+            <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
+
+              <div style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: 24, fontWeight: 700, color: TEXT, margin: '0 0 6px', letterSpacing: '-0.01em' }}>Stock Alerts</h2>
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>High-demand medications from the last 30 days</p>
+              </div>
+
+              <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: ORANGE }}>inventory_2</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: TEXT }}>Stock Alerts</span>
+                </div>
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Stock alerts list is not yet available.</p>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <GhostBtn onClick={() => setActiveView('dashboard')}>← Back to Dashboard</GhostBtn>
+              </div>
+
+            </div>
+          )}
+
+          {/* ══ VIEW: Activity Log ═════════════════════════════════════════ */}
+          {activeView === 'activity-log' && (() => {
+            const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000)
+            const filteredActivity = recentActivity.filter(a => new Date(a.time) >= last24h)
+            return (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
+
+                <div style={{ marginBottom: 28 }}>
+                  <h2 style={{ fontSize: 24, fontWeight: 700, color: TEXT, margin: '0 0 6px', letterSpacing: '-0.01em' }}>Activity Log</h2>
+                  <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Recent pharmacist activity (last 24 hours)</p>
+                </div>
+
+                <div style={{ backgroundColor: WHITE, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `1px solid ${BORDER}` }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>Last 24 Hours</span>
+                    <span style={{ fontSize: 12, color: MUTED }}>
+                      {filteredActivity.length === 1 ? '1 event' : `${filteredActivity.length} events`}
+                    </span>
+                  </div>
+                  {dashLoading && (
+                    <div style={{ padding: '24px 20px', fontSize: 13, color: MUTED }}>Loading activity...</div>
+                  )}
+                  {!dashLoading && filteredActivity.length === 0 && (
+                    <div style={{ padding: '24px 20px', fontSize: 13, color: MUTED }}>No activity in the last 24 hours.</div>
+                  )}
+                  {!dashLoading && filteredActivity.map((item, i) => (
+                    <ActivityRow
+                      key={item.id}
+                      activity={item}
+                      isLast={i === filteredActivity.length - 1}
+                      onClick={() => navigate(`/pharmacy/verify/${item.rx_id}`)}
+                    />
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                  <GhostBtn onClick={() => setActiveView('dashboard')}>← Back to Dashboard</GhostBtn>
+                </div>
+
+              </div>
+            )
+          })()}
 
           {/* ══ VIEW: Patient Lookup ═══════════════════════════════════════ */}
           {activeView === 'patient-lookup' && (

@@ -28,6 +28,7 @@ app.use('/api/prescriptions', require('./src/routes/prescriptions.routes'));
 app.use('/api/patients', require('./src/routes/patients.routes'));
 app.use('/api/regulator', require('./src/routes/regulator.routes'));
 app.use('/api/insurance', require('./src/routes/insurance.routes'));
+app.use('/api/pharmacy', require('./src/routes/pharmacy.routes'));
 
 app.get('/api/health', (req, res) => {
   res.json({ success: true, data: { status: 'MedAxis API running', timestamp: new Date() } });
