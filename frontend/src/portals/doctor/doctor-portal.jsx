@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect, Fragment } from 'react'
 import { useAuth } from '../../hooks/use-auth'
 import { getMyPrescriptionsAPI, createPrescriptionAPI, getDoctorStatsAPI, getRecentActivityAPI } from '../../api/prescriptions'
 import { searchPatientAPI } from '../../api/patients'
@@ -38,8 +38,8 @@ const MEDICATIONS = [
   { id: 2,  name: 'Amoxicilline',     drug_code: 'J01CA04',    category: 'antibiotic',         forms: [{ form: 'capsule', unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }, { form: 'syrup',   unit: 'ml',      max_dose: 250,  max_units: 1, default_dose: 125  }] },
   { id: 3,  name: 'Ventoline',        drug_code: 'R03AC02',    category: 'bronchodilator',     forms: [{ form: 'inhaler', unit: 'puffs',   max_dose: 2,    max_units: 4, default_dose: 2 }] },
   { id: 4,  name: 'Metformine',       drug_code: 'A10BA02',    category: 'antidiabetic',       forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 1000, max_units: 3, default_dose: 1 }] },
-  { id: 5,  name: 'Paracétamol IV',   drug_code: 'N02BE01-IV', category: 'analgesic',          forms: [{ form: 'IV',      unit: 'mg',      max_dose: 1000, max_units: 4, default_dose: 1000 }] },
-  { id: 6,  name: 'Tramadol',         drug_code: 'N02AX02',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 100, max_units: 4, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 100, max_units: 4, default_dose: 50 }] },
+  { id: 5,  name: 'Paracétamol IV',   drug_code: 'N02BE01-IV', category: 'analgesic',          forms: [{ form: 'intravenous',      unit: 'mg',      max_dose: 1000, max_units: 4, default_dose: 1000 }] },
+  { id: 6,  name: 'Tramadol',         drug_code: 'N02AX02',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 100, max_units: 4, default_dose: 1 }, { form: 'intravenous', unit: 'mg', max_dose: 100, max_units: 4, default_dose: 50 }] },
   { id: 7,  name: 'Diazépam',         drug_code: 'N05BA01',    category: 'controlled_psy',     controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 10,  max_units: 3, default_dose: 1 }] },
   { id: 8,  name: 'Oméprazole',       drug_code: 'A02BC01',    category: 'gastro',             forms: [{ form: 'capsule', unit: 'pills',   max_dose: 40,   max_units: 2, default_dose: 1 }] },
   { id: 9,  name: 'Ibuprofène',       drug_code: 'M01AE01',    category: 'anti-inflammatory',  forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 600,  max_units: 3, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 200, max_units: 3, default_dose: 100 }] },
@@ -50,20 +50,20 @@ const MEDICATIONS = [
   { id: 14, name: 'Amlodipine',       drug_code: 'C08CA01',    category: 'antihypertensive',   forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }] },
   { id: 15, name: 'Atorvastatine',    drug_code: 'C10AA05',    category: 'statin',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 1, default_dose: 1 }] },
   { id: 16, name: 'Levothyroxine',    drug_code: 'H03AA01',    category: 'thyroid',            forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 200,  max_units: 1, default_dose: 1 }] },
-  { id: 17, name: 'Furosémide',       drug_code: 'C03CA01',    category: 'diuretic',           forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
-  { id: 18, name: 'Metronidazole',    drug_code: 'J01XD01',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 500,  max_units: 3, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 500, max_units: 3, default_dose: 500 }] },
+  { id: 17, name: 'Furosémide',       drug_code: 'C03CA01',    category: 'diuretic',           forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'intravenous', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
+  { id: 18, name: 'Metronidazole',    drug_code: 'J01XD01',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 500,  max_units: 3, default_dose: 1 }, { form: 'intravenous', unit: 'mg', max_dose: 500, max_units: 3, default_dose: 500 }] },
   { id: 19, name: 'Fluconazole',      drug_code: 'J02AC01',    category: 'antifungal',         forms: [{ form: 'capsule', unit: 'pills',   max_dose: 400,  max_units: 1, default_dose: 1 }] },
   { id: 20, name: 'Cetirizine',       drug_code: 'R06AE07',    category: 'antihistamine',      forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 1, default_dose: 100 }] },
   { id: 21, name: 'Salbutamol',       drug_code: 'R03AC02-S',  category: 'bronchodilator',     forms: [{ form: 'inhaler', unit: 'puffs',   max_dose: 2,    max_units: 4, default_dose: 2 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 3, default_dose: 50 }] },
-  { id: 22, name: 'Ciprofloxacine',   drug_code: 'J01MA02',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 750,  max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 400, max_units: 2, default_dose: 400 }] },
+  { id: 22, name: 'Ciprofloxacine',   drug_code: 'J01MA02',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 750,  max_units: 2, default_dose: 1 }, { form: 'intravenous', unit: 'mg', max_dose: 400, max_units: 2, default_dose: 400 }] },
   { id: 23, name: 'Ranitidine',       drug_code: 'A02BA02',    category: 'gastro',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 300,  max_units: 2, default_dose: 1 }] },
-  { id: 24, name: 'Morphine',         drug_code: 'N02AA01',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'IV', unit: 'mg', max_dose: 15, max_units: 4, default_dose: 10 }, { form: 'tablet', unit: 'pills', max_dose: 30, max_units: 4, default_dose: 1 }] },
+  { id: 24, name: 'Morphine',         drug_code: 'N02AA01',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'intravenous', unit: 'mg', max_dose: 15, max_units: 4, default_dose: 10 }, { form: 'tablet', unit: 'pills', max_dose: 30, max_units: 4, default_dose: 1 }] },
   { id: 25, name: 'Codéine',          drug_code: 'R05DA04',    category: 'controlled_opioid',  controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 60, max_units: 4, default_dose: 1 }, { form: 'syrup', unit: 'ml', max_dose: 100, max_units: 4, default_dose: 15 }] },
   { id: 26, name: 'Alprazolam',       drug_code: 'N05BA12',    category: 'controlled_psy',     controlled: true, forms: [{ form: 'tablet', unit: 'pills', max_dose: 1,  max_units: 3, default_dose: 1 }] },
-  { id: 27, name: 'Insuline Glargine',drug_code: 'A10AE04',    category: 'antidiabetic',       forms: [{ form: 'IV',      unit: 'units',   max_dose: 100,  max_units: 1, default_dose: 20 }] },
+  { id: 27, name: 'Insuline Glargine',drug_code: 'A10AE04',    category: 'antidiabetic',       forms: [{ form: 'intravenous',      unit: 'units',   max_dose: 100,  max_units: 1, default_dose: 20 }] },
   { id: 28, name: 'Warfarine',        drug_code: 'B01AA03',    category: 'anticoagulant',      forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 10,   max_units: 1, default_dose: 1 }] },
   { id: 29, name: 'Azithromycine',    drug_code: 'J01FA10',    category: 'antibiotic',         forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 500,  max_units: 1, default_dose: 1 }, { form: 'sachet', unit: 'sachets', max_dose: 500, max_units: 1, default_dose: 1 }] },
-  { id: 30, name: 'Pantoprazole',     drug_code: 'A02BC02',    category: 'gastro',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'IV', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
+  { id: 30, name: 'Pantoprazole',     drug_code: 'A02BC02',    category: 'gastro',             forms: [{ form: 'tablet',  unit: 'pills',   max_dose: 80,   max_units: 2, default_dose: 1 }, { form: 'intravenous', unit: 'mg', max_dose: 80, max_units: 2, default_dose: 40 }] },
 ]
 
 // Returns max allowed dosage amount for a form object
@@ -79,7 +79,7 @@ function getDosageMeta(fo) {
     case 'capsule':  return { label: 'Number of pills', unit: fo.unit }
     case 'syrup':
     case 'liquid':   return { label: 'Amount (ml)', unit: fo.unit }
-    case 'IV':       return { label: `Amount (${fo.unit})`, unit: fo.unit }
+    case 'intravenous': return { label: `Amount (${fo.unit})`, unit: fo.unit }
     case 'inhaler':  return { label: 'Number of puffs', unit: fo.unit }
     case 'powder':
     case 'sachet':   return { label: 'Number of sachets', unit: fo.unit }
@@ -155,7 +155,7 @@ export default function DoctorPortal() {
   const [syncMinutes, setSyncMinutes]         = useState(2)
   const [doctorStats, setDoctorStats]         = useState({ issuedToday: 0, pendingPickup: 0, issuedThisMonth: 0 })
   const [recentActivity, setRecentActivity]   = useState([])
-  const [filter, setFilter]                   = useState({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })
+  const [filter, setFilter]                   = useState({ status: 'ALL', dateFrom: '', dateTo: '', expiryBefore: '', search: '' })
   const [totalCount, setTotalCount]           = useState(0)
 
   useEffect(() => {
@@ -197,13 +197,17 @@ export default function DoctorPortal() {
         const result = await getMyPrescriptionsAPI(token, params.toString())
         if (result.success) {
           const mapped = (result.data.prescriptions || []).map(rx => ({
-            rxId:    rx.rxId || rx.rx_id,
-            patient: rx.patientFirstName || rx.patientToken || 'Patient',
-            med:     rx.drugName || rx.drug_name || rx.medication || '',
-            dose:    rx.dosage || '',
-            date:    rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
-            expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
-            status:  rx.status || 'ACTIVE',
+            rxId:        rx.rxId,
+            patient:     [rx.patientFirstName, rx.patientLastName].filter(Boolean).join(' ') || 'Patient',
+            medications: rx.medications || [],
+            med:         rx.medications?.[0]?.drug_name || rx.drugName || '',
+            dose:        rx.dosage || '',
+            date:        rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
+            expiry:      rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
+            issuedAt:    rx.issuedAt,
+            expiresAt:   rx.expiresAt,
+            notes:       rx.notes || '',
+            status:      rx.status || 'ACTIVE',
           }))
           setPrescriptions(mapped)
           setTotalCount(result.data.total || 0)
@@ -228,6 +232,16 @@ export default function DoctorPortal() {
     for (let i = start; i <= end; i++) arr.push(i)
     return arr
   }, [currentPage, totalPages])
+
+  const filteredPrescriptions = useMemo(() => {
+    if (!filter.expiryBefore) return prescriptions
+    const cutoff = new Date(filter.expiryBefore)
+    cutoff.setHours(23, 59, 59, 999)
+    return prescriptions.filter(rx => {
+      if (!rx.expiresAt) return true
+      return new Date(rx.expiresAt) <= cutoff
+    })
+  }, [prescriptions, filter.expiryBefore])
 
   const goTo = useCallback((view) => {
     setActiveView(view)
@@ -335,13 +349,17 @@ export default function DoctorPortal() {
           const updated = await getMyPrescriptionsAPI(token, params.toString())
           if (updated.success) {
             const mapped = (updated.data.prescriptions || []).map(rx => ({
-              rxId:    rx.rxId || rx.rx_id,
-              patient: rx.patientFirstName || rx.patientToken || 'Patient',
-              med:     rx.drugName || rx.drug_name || rx.medication || '',
-              dose:    rx.dosage || '',
-              date:    rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
-              expiry:  rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
-              status:  rx.status || 'ACTIVE',
+              rxId:        rx.rxId,
+              patient:     [rx.patientFirstName, rx.patientLastName].filter(Boolean).join(' ') || 'Patient',
+              medications: rx.medications || [],
+              med:         rx.medications?.[0]?.drug_name || rx.drugName || '',
+              dose:        rx.dosage || '',
+              date:        rx.issuedAt ? new Date(rx.issuedAt).toLocaleDateString('en-GB') : '',
+              expiry:      rx.expiresAt ? new Date(rx.expiresAt).toLocaleDateString('en-GB') : '',
+              issuedAt:    rx.issuedAt,
+              expiresAt:   rx.expiresAt,
+              notes:       rx.notes || '',
+              status:      rx.status || 'ACTIVE',
             }))
             setPrescriptions(mapped)
             setTotalCount(updated.data.total || 0)
@@ -662,7 +680,7 @@ export default function DoctorPortal() {
               {backBtn}
 
               {/* FIX 5 — Active filter indicator */}
-              {(filter.status !== 'ALL' || filter.dateFrom || filter.search) && (
+              {(filter.status !== 'ALL' || filter.dateFrom || filter.expiryBefore || filter.search) && (
                 <div style={{
                   background: '#F0FAFA',
                   border: `1px solid ${TEAL}`,
@@ -679,9 +697,10 @@ export default function DoctorPortal() {
                     {filter.dateFrom && filter.dateFrom !== filter.dateTo && '● Showing: Prescriptions this month'}
                     {filter.search && `● Searching: "${filter.search}"`}
                     {filter.status !== 'ALL' && filter.status !== 'ACTIVE' && `● Filtered by status: ${filter.status}`}
+                    {filter.expiryBefore && `● Expiry before: ${new Date(filter.expiryBefore).toLocaleDateString('en-GB')}`}
                   </span>
                   <button
-                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })}
+                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', expiryBefore: '', search: '' })}
                     style={{ background: 'none', border: 'none', color: TEAL, cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', fontFamily: "'Space Grotesk', sans-serif" }}
                   >
                     Clear filter
@@ -732,33 +751,54 @@ export default function DoctorPortal() {
                   <option value="EXPIRED">Expired</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
-                <input
-                  type="date"
-                  value={filter.dateFrom}
-                  onChange={e => setFilter(f => ({ ...f, dateFrom: e.target.value }))}
-                  style={{
-                    width: 140, height: 40,
-                    border: `1px solid ${BORDER}`, borderRadius: 6,
-                    padding: '0 10px', fontSize: 13,
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    color: TEXT, outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-                <input
-                  type="date"
-                  value={filter.dateTo}
-                  onChange={e => setFilter(f => ({ ...f, dateTo: e.target.value }))}
-                  style={{
-                    width: 140, height: 40,
-                    border: `1px solid ${BORDER}`, borderRadius: 6,
-                    padding: '0 10px', fontSize: 13,
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    color: TEXT, outline: 'none', boxSizing: 'border-box',
-                  }}
-                />
-                {(filter.status !== 'ALL' || filter.dateFrom || filter.dateTo || filter.search) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>From (Issued Date)</label>
+                  <input
+                    type="date"
+                    value={filter.dateFrom}
+                    onChange={e => setFilter(f => ({ ...f, dateFrom: e.target.value }))}
+                    style={{
+                      width: 150, height: 36,
+                      border: `1px solid ${BORDER}`, borderRadius: 6,
+                      padding: '0 10px', fontSize: 13,
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      color: TEXT, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>To (Issued Date)</label>
+                  <input
+                    type="date"
+                    value={filter.dateTo}
+                    onChange={e => setFilter(f => ({ ...f, dateTo: e.target.value }))}
+                    style={{
+                      width: 150, height: 36,
+                      border: `1px solid ${BORDER}`, borderRadius: 6,
+                      padding: '0 10px', fontSize: 13,
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      color: TEXT, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Expiry Before</label>
+                  <input
+                    type="date"
+                    value={filter.expiryBefore}
+                    onChange={e => setFilter(f => ({ ...f, expiryBefore: e.target.value }))}
+                    style={{
+                      width: 150, height: 36,
+                      border: `1px solid ${BORDER}`, borderRadius: 6,
+                      padding: '0 10px', fontSize: 13,
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      color: TEXT, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                {(filter.status !== 'ALL' || filter.dateFrom || filter.dateTo || filter.expiryBefore || filter.search) && (
                   <button
-                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', search: '' })}
+                    onClick={() => setFilter({ status: 'ALL', dateFrom: '', dateTo: '', expiryBefore: '', search: '' })}
                     style={{
                       height: 40, padding: '0 16px',
                       background: 'none', border: `1px solid ${BORDER}`,
@@ -775,9 +815,11 @@ export default function DoctorPortal() {
                 <div style={{ padding: '14px 20px 12px', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: 16, color: MUTED }}>description</span>
                   <h2 style={{ fontSize: 13, fontWeight: 800, color: TEXT, textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 0 10px' }}>My Prescription History</h2>
-                  <span style={{ fontSize: 11, color: MUTED, backgroundColor: '#F3F4F6', borderRadius: 4, padding: '2px 8px', fontWeight: 600, marginLeft: 10 }}>{totalCount} results</span>
+                  <span style={{ fontSize: 11, color: MUTED, backgroundColor: '#F3F4F6', borderRadius: 4, padding: '2px 8px', fontWeight: 600, marginLeft: 10 }}>
+                    {filter.expiryBefore ? filteredPrescriptions.length : totalCount} results
+                  </span>
                 </div>
-                <RxTable expanded prescriptions={prescriptions} />
+                <RxTable expanded prescriptions={filteredPrescriptions} />
                 <RxPagination currentPage={currentPage} totalPages={totalPages} pages={pages} onPageChange={setCurrentPage} total={totalCount} showing={prescriptions.length} />
               </section>
             </div>
@@ -1092,6 +1134,14 @@ export default function DoctorPortal() {
 
 function RxTable({ compact, expanded, prescriptions: rows }) {
   const data = rows || PRESCRIPTIONS
+  const [expandedRxId, setExpandedRxId] = useState(null)
+
+  const toggleDetails = (rxId) => {
+    setExpandedRxId(prev => prev === rxId ? null : rxId)
+  }
+
+  const colCount = expanded ? 7 : 5
+
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: compact ? 'fixed' : 'auto' }}>
       {compact && (
@@ -1106,8 +1156,8 @@ function RxTable({ compact, expanded, prescriptions: rows }) {
       <thead>
         <tr style={{ backgroundColor: '#F9FAFB', borderBottom: `1px solid ${BORDER}` }}>
           {(expanded
-            ? ['ID / CNIE', 'MEDICATION', 'DOSAGE', 'DATE', 'EXPIRY', 'STATUS', 'ACTIONS']
-            : ['ID / CNIE', 'MEDICATION', 'DATE', 'STATUS', 'ACTIONS']
+            ? ['ID / PATIENT', 'MEDICATION', 'DOSAGE', 'ISSUED DATE', 'EXPIRY DATE', 'STATUS', 'ACTIONS']
+            : ['ID / PATIENT', 'MEDICATION', 'ISSUED DATE', 'STATUS', 'ACTIONS']
           ).map(col => (
             <th key={col} style={{ padding: '9px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{col}</th>
           ))}
@@ -1116,33 +1166,154 @@ function RxTable({ compact, expanded, prescriptions: rows }) {
       <tbody>
         {data.map((rx, i) => {
           const cfg = STATUS_CFG[rx.status] || {}
+          const meds = rx.medications || (rx.med ? [{ drug_name: rx.med, dosage: rx.dose }] : [])
+          const firstMed = meds[0]
+          const extraCount = meds.length - 1
+          const isExpanded = expandedRxId === rx.rxId
+          const rowBg = i % 2 === 0 ? WHITE : '#FAFAFA'
+
           return (
-            <tr key={rx.rxId}
-              style={{ backgroundColor: i % 2 === 0 ? WHITE : '#FAFAFA', borderBottom: `1px solid #F3F4F6`, transition: 'background-color 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F0FAF9')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = i % 2 === 0 ? WHITE : '#FAFAFA')}
-            >
-              <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: TEAL, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>{rx.rxId}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.patient}</div>
-              </td>
-              <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.med}</div>
-                {compact && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.dose}</div>}
-              </td>
-              {expanded && <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.dose}</td>}
-              <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.date}</td>
-              {expanded && <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.expiry}</td>}
-              <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: cfg.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, letterSpacing: '0.05em' }}>{cfg.label}</span>
-                </div>
-              </td>
-              <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                <ActionButton label={cfg.action} color={cfg.color} hoverBg={cfg.hoverBg} />
-              </td>
-            </tr>
+            <Fragment key={rx.rxId}>
+              <tr
+                style={{ backgroundColor: isExpanded ? '#F0FAF9' : rowBg, borderBottom: isExpanded ? 'none' : `1px solid #F3F4F6`, transition: 'background-color 0.1s' }}
+                onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = '#F0FAF9' }}
+                onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = rowBg }}
+              >
+                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: TEAL, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.02em' }}>{rx.rxId}</div>
+                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.patient}</div>
+                </td>
+                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {firstMed?.drug_name || rx.med || '—'}
+                  </div>
+                  {extraCount > 0 && (
+                    <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>+ {extraCount} more</div>
+                  )}
+                  {compact && !extraCount && <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rx.dose}</div>}
+                </td>
+                {expanded && <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.dose}</td>}
+                <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.date}</td>
+                {expanded && <td style={{ padding: '12px 14px', verticalAlign: 'middle', fontSize: 11, color: MUTED, whiteSpace: 'nowrap' }}>{rx.expiry}</td>}
+                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: cfg.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, letterSpacing: '0.05em' }}>{cfg.label}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {expanded && (
+                      <button
+                        onClick={() => toggleDetails(rx.rxId)}
+                        style={{
+                          padding: '4px 9px', fontSize: 9.5, fontWeight: 700,
+                          letterSpacing: '0.07em', textTransform: 'uppercase',
+                          color: isExpanded ? WHITE : TEAL,
+                          backgroundColor: isExpanded ? TEAL : 'transparent',
+                          border: `1px solid ${TEAL}`,
+                          borderRadius: 3, cursor: 'pointer',
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          transition: 'all 0.12s ease', whiteSpace: 'nowrap',
+                        }}
+                      >Details</button>
+                    )}
+                    <ActionButton label={cfg.action} color={cfg.color} hoverBg={cfg.hoverBg} />
+                  </div>
+                </td>
+              </tr>
+
+              {/* ── Expandable details panel ─────────────────────────────── */}
+              {isExpanded && expanded && (
+                <tr style={{ backgroundColor: '#F8FFFE', borderBottom: `1px solid #E5E7EB` }}>
+                  <td colSpan={colCount} style={{ padding: '0 20px 20px' }}>
+                    {/* Medications list */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
+                        Medications ({meds.length})
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+                        {meds.map((m, idx) => (
+                          <div key={idx} style={{
+                            border: `1px solid ${BORDER}`, borderRadius: 6,
+                            padding: '10px 14px', backgroundColor: WHITE,
+                            position: 'relative',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>{m.drug_name || '—'}</span>
+                              {m.controlled && (
+                                <span style={{
+                                  fontSize: 9, fontWeight: 700, color: '#DC2626',
+                                  border: '1px solid #DC2626', borderRadius: 3,
+                                  padding: '1px 5px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                                }}>Controlled</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
+                              {m.form && (
+                                <div>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Form </span>
+                                  <span style={{ fontSize: 11, color: TEXT }}>{m.form}</span>
+                                </div>
+                              )}
+                              {(m.dosage_amount != null || m.dosage) && (
+                                <div>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Dosage </span>
+                                  <span style={{ fontSize: 11, color: TEXT }}>
+                                    {m.dosage_amount != null ? `${m.dosage_amount} ${m.dosage_unit || ''}`.trim() : m.dosage}
+                                  </span>
+                                </div>
+                              )}
+                              {m.frequency && (
+                                <div>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Frequency </span>
+                                  <span style={{ fontSize: 11, color: TEXT }}>{m.frequency}</span>
+                                </div>
+                              )}
+                              {m.duration_days && (
+                                <div>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Duration </span>
+                                  <span style={{ fontSize: 11, color: TEXT }}>{m.duration_days} days</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Meta row */}
+                    <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', borderTop: `1px dashed ${BORDER}`, paddingTop: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>RxID</div>
+                        <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: TEAL, fontWeight: 700 }}>{rx.rxId}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Issued Date</div>
+                        <div style={{ fontSize: 11, color: TEXT }}>{rx.date || '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Expiry Date</div>
+                        <div style={{ fontSize: 11, color: TEXT }}>{rx.expiry || '—'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Status</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: cfg.color }} />
+                          <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}>{cfg.label}</span>
+                        </div>
+                      </div>
+                      {rx.notes && (
+                        <div style={{ flexBasis: '100%' }}>
+                          <div style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Notes</div>
+                          <div style={{ fontSize: 11, color: TEXT, lineHeight: 1.5 }}>{rx.notes}</div>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           )
         })}
       </tbody>

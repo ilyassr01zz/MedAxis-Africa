@@ -4,11 +4,11 @@ const { hashCNIE } = require('../utils/hash.utils');
 const prisma = require('../utils/prisma');
 
 const MOCK_USERS = {
-  'DOCTOR001': { role: 'DOCTOR', first_name: 'Ahmed', cnie: 'DOCTOR001' },
-  'PHARM001': { role: 'PHARMACIST', first_name: 'Youssef', cnie: 'PHARM001' },
-  'PATIENT001': { role: 'PATIENT', first_name: 'Karima', cnie: 'PATIENT001' },
-  'REGULATOR001': { role: 'REGULATOR', first_name: 'Fatima', cnie: 'REGULATOR001' },
-  'ADMIN001': { role: 'ADMIN', first_name: 'Hassan', cnie: 'ADMIN001' }
+  'DOCTOR001': { role: 'DOCTOR', first_name: 'Ahmed', last_name: 'Benali', cnie: 'DOCTOR001' },
+  'PHARM001': { role: 'PHARMACIST', first_name: 'Youssef', last_name: 'Alami', cnie: 'PHARM001' },
+  'PATIENT001': { role: 'PATIENT', first_name: 'Karima', last_name: 'Alaoui', cnie: 'PATIENT001' },
+  'REGULATOR001': { role: 'REGULATOR', first_name: 'Fatima', last_name: 'Zahrae', cnie: 'REGULATOR001' },
+  'ADMIN001': { role: 'ADMIN', first_name: 'Hassan', last_name: 'Tazi', cnie: 'ADMIN001' }
 };
 
 const login = async (req, res) => {
@@ -25,8 +25,10 @@ const login = async (req, res) => {
     let user = await prisma.user.findUnique({ where: { cnie_hash } });
     if (!user) {
       user = await prisma.user.create({
-        data: { cnie_hash, role: mockUser.role, first_name: mockUser.first_name }
+        data: { cnie_hash, role: mockUser.role, first_name: mockUser.first_name, last_name: mockUser.last_name || null }
       });
+    } else if (!user.last_name && mockUser.last_name) {
+      user = await prisma.user.update({ where: { cnie_hash }, data: { last_name: mockUser.last_name } });
     }
 
     // AUTO-CREATE / FIX ROLE RECORDS ON EVERY LOGIN

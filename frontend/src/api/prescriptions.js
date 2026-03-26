@@ -24,6 +24,9 @@ export async function createPrescription(data, token) {
     dosage: data.dosage,
     frequency: data.frequency || 'As prescribed',
     duration_days: parseInt(data.durationDays || data.duration_days || data.duration || 30, 10),
+    medications: data.medications || null,
+    notes: data.notes || null,
+    expiry_days: data.expiry_days || data.expiryDays || null,
   };
 
   const response = await axios.post(`${API_URL}/prescriptions`, payload, authHeader(token));
@@ -232,6 +235,8 @@ function normaliseRx(rx) {
       ? `PAT-**-${rx.patient_cnie_hash.slice(-4)}`
       : rx.patientToken,
     patientFirstName: rx.patient?.user?.first_name || rx.patientFirstName || 'Patient',
+    patientLastName: rx.patient?.user?.last_name || rx.patientLastName || '',
+    medications: rx.medications || null,
     doctorName:
       rx.doctor?.user?.first_name
         ? `Dr. ${rx.doctor.user.first_name}`
