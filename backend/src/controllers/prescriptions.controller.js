@@ -4,12 +4,12 @@ const prisma = require('../utils/prisma');
 
 const createPrescription = async (req, res) => {
   try {
-    const { patient_cnie_hash, drug_code, drug_name, dosage, frequency, duration_days } = req.body;
+    const { patient_cnie_hash, drug_code, drug_name, dosage, frequency, duration_days, medications, notes, expiry_days } = req.body;
     console.log('[createPrescription] body:', { patient_cnie_hash, drug_code, drug_name, dosage, frequency, duration_days });
     if (!patient_cnie_hash || !drug_code || !drug_name || !dosage || !frequency || !duration_days) {
       return error(res, 'All prescription fields are required', 400);
     }
-    if (duration_days > 90) return error(res, 'Maximum duration is 90 days', 400);
+    if (duration_days > 365) return error(res, 'Maximum duration is 365 days', 400);
     let doctor = await prisma.doctor.findUnique({ where: { user_id: req.user.id } });
     if (!doctor) {
       doctor = await prisma.doctor.create({
@@ -26,8 +26,9 @@ const createPrescription = async (req, res) => {
     console.log('[createPrescription] patient lookup by cnie_hash:', patient_cnie_hash.slice(0, 8) + '...', '→', patient ? `found id=${patient.id}` : 'NOT FOUND');
     if (!patient) return error(res, 'Patient not found', 404);
     const rx_id = `RX-${Date.now().toString(36).toUpperCase()}-${uuidv4().slice(0, 4).toUpperCase()}`;
+    const expiryDaysNum = expiry_days ? parseInt(expiry_days) : 90;
     const expiry_date = new Date();
-    expiry_date.setDate(expiry_date.getDate() + parseInt(duration_days));
+    expiry_date.setDate(expiry_date.getDate() + expiryDaysNum);
     const prescription = await prisma.prescription.create({
       data: {
         rx_id,
@@ -39,7 +40,9 @@ const createPrescription = async (req, res) => {
         frequency,
         duration_days: parseInt(duration_days),
         expiry_date,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        medications_json: medications && medications.length > 0 ? JSON.stringify(medications) : null,
+        notes: notes || null,
       }
     });
     await prisma.auditLog.create({
@@ -97,12 +100,40 @@ const getMyPrescriptions = async (req, res) => {
     ]);
 
     const now = new Date();
-    const updated = prescriptions.map(p => ({
-      ...p,
-      status: p.status === 'ACTIVE' && p.expiry_date < now ? 'EXPIRED' : p.status
-    }));
+    const mapped = prescriptions.map(p => {
+      const status = p.status === 'ACTIVE' && p.expiry_date < now ? 'EXPIRED' : p.status;
+      let medications = null;
+      if (p.medications_json) {
+        try { medications = JSON.parse(p.medications_json); } catch (_) { medications = null; }
+      }
+      if (!medications) {
+        medications = [{
+          drug_name: p.drug_name,
+          drug_code: p.drug_code,
+          form: null,
+          dosage_amount: null,
+          dosage_unit: null,
+          dosage: p.dosage,
+          frequency: p.frequency,
+          duration_days: p.duration_days,
+          controlled: false,
+        }];
+      }
+      return {
+        rxId: p.rx_id,
+        patientFirstName: p.patient?.user?.first_name || 'Patient',
+        patientLastName: p.patient?.user?.last_name || '',
+        medications,
+        drugName: p.drug_name,
+        dosage: p.dosage,
+        notes: p.notes || '',
+        issuedAt: p.created_at,
+        expiresAt: p.expiry_date,
+        status,
+      };
+    });
 
-    return success(res, { prescriptions: updated, total });
+    return success(res, { prescriptions: mapped, total });
   } catch (err) {
     console.error(err);
     return error(res, 'Failed to fetch prescriptions', 500);

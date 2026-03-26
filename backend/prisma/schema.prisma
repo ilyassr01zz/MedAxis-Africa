@@ -11,6 +11,7 @@ model User {
   cnie_hash  String   @unique
   role       String
   first_name String
+  last_name  String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -87,17 +88,19 @@ model Prescription {
   rx_id         String   @unique
   doctor_id     String
   patient_id    String
-  drug_code     String
-  drug_name     String
-  dosage        String
-  frequency     String
-  duration_days Int
-  expiry_date   DateTime
-  status        String   @default("ACTIVE")
-  is_flagged    Boolean  @default(false)
-  is_disputed   Boolean  @default(false)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  drug_code         String
+  drug_name         String
+  dosage            String
+  frequency         String
+  duration_days     Int
+  expiry_date       DateTime
+  status            String   @default("ACTIVE")
+  is_flagged        Boolean  @default(false)
+  is_disputed       Boolean  @default(false)
+  medications_json  String?
+  notes             String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 
   doctor            Doctor           @relation(fields: [doctor_id], references: [id])
   patient           Patient          @relation(fields: [patient_id], references: [id])
