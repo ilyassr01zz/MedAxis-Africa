@@ -11,6 +11,7 @@ model User {
   cnie_hash  String   @unique
   role       String
   first_name String
+  last_name  String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -94,6 +95,8 @@ model Prescription {
   duration_days     Int
   expiry_date       DateTime
   status            String   @default("ACTIVE")
+  medications_json  String?
+  notes             String?
   is_flagged        Boolean  @default(false)
   is_disputed       Boolean  @default(false)
   is_reviewed       Boolean  @default(false)

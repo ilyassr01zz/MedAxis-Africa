@@ -1253,7 +1253,7 @@ function RxTable({ compact, expanded, prescriptions: rows }) {
                               {m.form && (
                                 <div>
                                   <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Form </span>
-                                  <span style={{ fontSize: 11, color: TEXT }}>{m.form}</span>
+                                  <span style={{ fontSize: 11, color: TEXT }}>{m.form ? m.form.charAt(0).toUpperCase() + m.form.slice(1) : ''}</span>
                                 </div>
                               )}
                               {(m.dosage_amount != null || m.dosage) && (
