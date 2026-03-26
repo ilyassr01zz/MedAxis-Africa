@@ -89,3 +89,28 @@ export async function getPharmacyList(filters = {}, token) {
   const response = await axios.get(`${API_URL}/regulator/pharmacies`, authHeader(token));
   return response.data;
 }
+
+// ---------------------------------------------------------------------------
+// getDisputesAPI
+// GET /api/regulator/disputes
+// ---------------------------------------------------------------------------
+
+export const getDisputesAPI = async (token) => {
+  const response = await axios.get(`${API_URL}/regulator/disputes`, authHeader(token));
+  return response.data;
+};
+
+// ---------------------------------------------------------------------------
+// markDisputeReviewedAPI
+// PATCH /api/regulator/disputes/:rx_id/review
+// ---------------------------------------------------------------------------
+
+export const markDisputeReviewedAPI = async (token, rx_id) => {
+  console.log('Calling mark reviewed for:', rx_id);
+  const response = await axios.patch(
+    `${API_URL}/regulator/disputes/${rx_id}/review`,
+    {},
+    authHeader(token)
+  );
+  return response.data;
+};

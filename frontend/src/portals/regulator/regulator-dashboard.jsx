@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../../hooks/use-auth'
 import Toast, { useToast } from '../../components/toast'
-import { getRegulatorStatsAPI } from '../../api/regulator'
+import { getRegulatorStatsAPI, getDisputesAPI, markDisputeReviewedAPI } from '../../api/regulator'
 
 // ---------------------------------------------------------------------------
 // Mock data — exact values from mockup spec
@@ -67,24 +67,21 @@ const LATENCY_BARS = [40, 55, 38, 62, 45, 70, 48, 58, 42, 65, 50, 80]
 
 const STATUS_CONFIG = {
   VALID:     { dot: '#16A34A', label: 'Valid',     textColor: '#16A34A' },
+  ACTIVE:    { dot: '#0D7C7C', label: 'Active',    textColor: '#0D7C7C' },
   PENDING:   { dot: '#F0A500', label: 'Pending',   textColor: '#F0A500' },
   FLAGGED:   { dot: '#E53E3E', label: 'Flagged',   textColor: '#E53E3E' },
+  DISPUTED:  { dot: '#E53E3E', label: 'Disputed',  textColor: '#E53E3E' },
   EXPIRED:   { dot: '#9CA3AF', label: 'Expired',   textColor: '#6B7280' },
   DISPENSED: { dot: '#6B7280', label: 'Dispensed', textColor: '#6B7280' },
 }
 
-const TOTAL_ENTRIES = 1284902
+const getRowStyle = (status) => {
+  if (status === 'DISPUTED') return { background: '#FEF2F2', borderLeft: '3px solid #E53E3E' }
+  if (status === 'FLAGGED') return { background: '#FFFBEB', borderLeft: '3px solid #F0A500' }
+  return {}
+}
 
-// ---------------------------------------------------------------------------
-// Sidebar nav items — Dashboard is ACTIVE for regulator
-// ---------------------------------------------------------------------------
-const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Dashboard',       icon: 'dashboard'     },
-  { key: 'table',     label: 'Prescriptions',   icon: 'description'   },
-  { key: 'stats',     label: 'Statistics',      icon: 'bar_chart'     },
-  { key: 'licenses',  label: 'Doctor Licenses', icon: 'verified_user' },
-  { key: 'logs',      label: 'System Logs',     icon: 'history'       },
-]
+const TOTAL_ENTRIES = 1284902
 
 // ---------------------------------------------------------------------------
 // Small reusable helpers
@@ -184,14 +181,18 @@ export default function RegulatorDashboard() {
   const { logout, token } = useAuth()
   const { visible: toastVisible, showToast } = useToast()
 
-  const [activeNav, setActiveNav]       = useState('dashboard')
-  const [searchQuery, setSearchQuery]   = useState('')
-  const [currentPage]                   = useState(1)
-  const [stats, setStats]               = useState(null)
+  const [activeNav, setActiveNav]           = useState('dashboard')
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [currentPage]                       = useState(1)
+  const [stats, setStats]                   = useState(null)
+  const [disputes, setDisputes]             = useState([])
+  const [disputesLoading, setDisputesLoading] = useState(false)
+  const [expandedDispute, setExpandedDispute] = useState(null)
+  const [reviewedDisputes, setReviewedDisputes] = useState(new Set())
 
   useEffect(() => {
     if (!token) return
-    const loadStats = async () => {
+    const refreshStats = async () => {
       try {
         const result = await getRegulatorStatsAPI(token)
         if (result.success) setStats(result.data)
@@ -199,8 +200,42 @@ export default function RegulatorDashboard() {
         console.error('Failed to load regulator stats:', err)
       }
     }
-    loadStats()
+    refreshStats()
+    const interval = setInterval(refreshStats, 30000)
+    return () => clearInterval(interval)
   }, [token])
+
+  useEffect(() => {
+    if (activeNav !== 'disputes' || !token) return
+    const loadDisputes = async () => {
+      setDisputesLoading(true)
+      try {
+        console.log('Loading disputes, token available:', !!token)
+        const result = await getDisputesAPI(token)
+        console.log('Disputes API result:', result)
+        console.log('Disputes data:', result?.data?.disputes)
+        if (result.success) {
+          setDisputes(result.data.disputes)
+          console.log('Set disputes:', result.data.disputes?.length)
+        }
+      } catch (err) {
+        console.error('Failed to load disputes:', err)
+        console.error('Error response:', err.response?.data)
+      } finally {
+        setDisputesLoading(false)
+      }
+    }
+    loadDisputes()
+  }, [activeNav, token])
+
+  const navItems = [
+    { key: 'dashboard', label: 'Dashboard',       icon: 'dashboard',     badge: null },
+    { key: 'table',     label: 'Prescriptions',   icon: 'description',   badge: null },
+    { key: 'stats',     label: 'Statistics',      icon: 'bar_chart',     badge: null },
+    { key: 'disputes',  label: 'Disputes',         icon: 'flag',          badge: stats?.disputed > 0 ? stats.disputed : null },
+    { key: 'licenses',  label: 'Doctor Licenses', icon: 'verified_user', badge: null },
+    { key: 'logs',      label: 'System Logs',     icon: 'history',       badge: null },
+  ]
 
   const mainRef  = useRef(null)
   const tableRef = useRef(null)
@@ -217,6 +252,7 @@ export default function RegulatorDashboard() {
     } else if (key === 'licenses' || key === 'logs') {
       showToast()
     }
+    // 'disputes' just sets activeNav — the view conditional handles the rest
   }, [showToast])
 
   const prescriptionRows = stats?.prescriptions
@@ -344,7 +380,7 @@ export default function RegulatorDashboard() {
           <div style={{ height: 1, backgroundColor: '#E5E7EB', margin: '0 16px' }} />
 
           <nav style={{ padding: '8px 0', flex: 1 }}>
-            {NAV_ITEMS.map(item => {
+            {navItems.map(item => {
               const active = activeNav === item.key
               return (
                 <button key={item.key} onClick={() => handleNav(item.key)} style={{
@@ -362,9 +398,25 @@ export default function RegulatorDashboard() {
                   <span className="material-symbols-outlined" style={{ fontSize: 18, lineHeight: 1, color: active ? '#0D7C7C' : '#6B7280' }}>
                     {item.icon}
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#0D7C7C' : '#374151' }}>
-                    {item.label}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#0D7C7C' : '#374151' }}>
+                      {item.label}
+                    </span>
+                    {item.badge && (
+                      <span style={{
+                        background: '#E5E7EB',
+                        color: '#6B7280',
+                        borderRadius: '10px',
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        minWidth: '20px',
+                        textAlign: 'center'
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
                 </button>
               )
             })}
@@ -388,7 +440,10 @@ export default function RegulatorDashboard() {
         </aside>
 
         {/* ── Main content ────────────────────────────────────────────────── */}
-        <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: activeNav === 'disputes' ? 0 : 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* ── Dashboard view ── */}
+          {activeNav !== 'disputes' && <>
 
           {/* ── Page header ── */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -435,6 +490,36 @@ export default function RegulatorDashboard() {
               </button>
             </div>
           </div>
+
+          {/* ── Disputed alert banner ── */}
+          {stats?.disputed > 0 && (
+            <div
+              onClick={() => setActiveNav('disputes')}
+              style={{
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '8px',
+                padding: '12px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#FEE2E2'}
+              onMouseLeave={e => e.currentTarget.style.background = '#FEF2F2'}
+            >
+              <span style={{ color: '#E53E3E', fontSize: '20px' }}>⚠</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#E53E3E', fontWeight: '700', fontSize: '14px', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {stats.disputed} disputed prescription{stats.disputed > 1 ? 's' : ''} require regulatory review
+                </p>
+                <p style={{ color: '#6B7280', fontSize: '13px', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Patients have reported these prescriptions as unauthorized — click to review
+                </p>
+              </div>
+              <span style={{ color: '#E53E3E', fontSize: '14px', fontWeight: '600', fontFamily: "'Space Grotesk', sans-serif" }}>Review →</span>
+            </div>
+          )}
 
           {/* ── Three stats cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
@@ -622,9 +707,16 @@ export default function RegulatorDashboard() {
                         height: 72,
                         borderBottom: '1px solid #F3F4F6',
                         transition: 'background-color 0.1s',
+                        ...getRowStyle(row.status),
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0F9F9' }}
-                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#FFFFFF' }}
+                      onMouseEnter={e => {
+                        const base = getRowStyle(row.status)
+                        e.currentTarget.style.backgroundColor = base.background || '#F0F9F9'
+                      }}
+                      onMouseLeave={e => {
+                        const base = getRowStyle(row.status)
+                        e.currentTarget.style.backgroundColor = base.background || '#FFFFFF'
+                      }}
                     >
                       <td style={{ padding: '0 16px', verticalAlign: 'middle' }}>
                         <span style={{
@@ -835,6 +927,244 @@ export default function RegulatorDashboard() {
               </div>
             </div>
           </div>
+
+          </>}
+
+          {/* ── Disputes view ── */}
+          {activeNav === 'disputes' && (
+            <div style={{ padding: '32px' }}>
+
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                <div>
+                  <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1A1A2E', margin: 0, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
+                    Patient Disputes
+                  </h1>
+                  <p style={{ fontSize: '14px', color: '#6B7280', margin: '4px 0 0 0', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Prescriptions reported as unauthorized by patients
+                  </p>
+                </div>
+                <div style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span style={{ color: '#E53E3E', fontSize: '13px', fontWeight: '700', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {disputes.filter(d => !reviewedDisputes.has(d.rx_id)).length} pending review
+                  </span>
+                </div>
+              </div>
+
+              {/* Loading state */}
+              {disputesLoading && (
+                <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Loading disputes...
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!disputesLoading && disputes.length === 0 && (
+                <div style={{
+                  background: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  padding: '48px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ fontSize: '18px', fontWeight: '600', color: '#1A1A2E', margin: '0 0 8px 0', fontFamily: "'Space Grotesk', sans-serif" }}>
+                    No disputes reported
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#6B7280', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Patient dispute reports will appear here
+                  </p>
+                </div>
+              )}
+
+              {/* Disputes list */}
+              {!disputesLoading && disputes.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {disputes.map((dispute) => {
+                    const isExpanded = expandedDispute === dispute.rx_id
+                    const isReviewed = reviewedDisputes.has(dispute.rx_id) || dispute.is_reviewed === true
+                    return (
+                      <div key={dispute.rx_id} style={{
+                        background: '#FFFFFF',
+                        border: `1px solid ${isReviewed ? '#E5E7EB' : '#FECACA'}`,
+                        borderLeft: `4px solid ${isReviewed ? '#9CA3AF' : '#E53E3E'}`,
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        opacity: isReviewed ? 0.7 : 1
+                      }}>
+
+                        {/* Row header — always visible */}
+                        <div
+                          onClick={() => setExpandedDispute(isExpanded ? null : dispute.rx_id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '16px 20px',
+                            cursor: 'pointer',
+                            gap: '16px'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#FAFAFA'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          {/* Status badge */}
+                          <span style={{
+                            background: isReviewed ? '#F3F4F6' : '#FEF2F2',
+                            color: isReviewed ? '#6B7280' : '#E53E3E',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            letterSpacing: '0.05em',
+                            whiteSpace: 'nowrap',
+                            fontFamily: "'Space Grotesk', sans-serif"
+                          }}>
+                            {isReviewed ? 'REVIEWED' : 'DISPUTED'}
+                          </span>
+
+                          {/* RxID */}
+                          <span style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: '13px',
+                            color: '#0D7C7C',
+                            fontWeight: '600',
+                            minWidth: '180px'
+                          }}>
+                            #{dispute.rx_id}
+                          </span>
+
+                          {/* Drug name */}
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1A1A2E', flex: 1, fontFamily: "'Space Grotesk', sans-serif" }}>
+                            {dispute.drug_name}
+                          </span>
+
+                          {/* Doctor */}
+                          <span style={{ fontSize: '13px', color: '#6B7280', minWidth: '140px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                            {dispute.doctor_name}
+                          </span>
+
+                          {/* Patient token */}
+                          <span style={{ fontSize: '13px', color: '#6B7280', minWidth: '120px', fontFamily: "'JetBrains Mono', monospace" }}>
+                            {dispute.patient_token}
+                          </span>
+
+                          {/* Date */}
+                          <span style={{ fontSize: '12px', color: '#9CA3AF', minWidth: '100px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                            {new Date(dispute.disputed_at).toLocaleDateString('en-GB')}
+                          </span>
+
+                          {/* Expand arrow */}
+                          <span style={{
+                            color: '#6B7280',
+                            fontSize: '16px',
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s',
+                            display: 'inline-block'
+                          }}>▼</span>
+                        </div>
+
+                        {/* Expanded details */}
+                        {isExpanded && (
+                          <div style={{
+                            borderTop: '1px solid #F3F4F6',
+                            padding: '20px 24px',
+                            background: '#FAFAFA'
+                          }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '20px' }}>
+
+                              <div>
+                                <p style={{ fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0', fontFamily: "'Space Grotesk', sans-serif" }}>Prescription Details</p>
+                                <p style={{ fontSize: '14px', color: '#1A1A2E', fontWeight: '600', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.drug_name}</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.dosage} • {dispute.frequency}</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.duration_days} days</p>
+                              </div>
+
+                              <div>
+                                <p style={{ fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0', fontFamily: "'Space Grotesk', sans-serif" }}>Issued By</p>
+                                <p style={{ fontSize: '14px', color: '#1A1A2E', fontWeight: '600', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.doctor_name}</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.doctor_specialty}</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>{dispute.doctor_facility}</p>
+                              </div>
+
+                              <div>
+                                <p style={{ fontSize: '11px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px 0', fontFamily: "'Space Grotesk', sans-serif" }}>Timeline</p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>
+                                  Issued: {new Date(dispute.created_at).toLocaleDateString('en-GB')}
+                                </p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: '0 0 2px 0', fontFamily: "'Space Grotesk', sans-serif" }}>
+                                  Disputed: {new Date(dispute.disputed_at).toLocaleDateString('en-GB')}
+                                </p>
+                                <p style={{ fontSize: '13px', color: '#6B7280', margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                                  Expires: {new Date(dispute.expiry_date).toLocaleDateString('en-GB')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
+                              {!isReviewed && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const result = await markDisputeReviewedAPI(token, dispute.rx_id)
+                                      if (!result.success) {
+                                        console.error('Failed to mark reviewed:', result)
+                                        return
+                                      }
+                                      // Optimistic update — mark this dispute as reviewed in local state immediately
+                                      setReviewedDisputes(prev => new Set([...prev, dispute.rx_id]))
+                                      setDisputes(prev => prev.map(d =>
+                                        d.rx_id === dispute.rx_id ? { ...d, is_reviewed: true } : d
+                                      ))
+                                      // Reload stats so sidebar badge and alert banner update
+                                      const updatedStats = await getRegulatorStatsAPI(token)
+                                      if (updatedStats.success) setStats(updatedStats.data)
+                                    } catch (err) {
+                                      console.error('Failed to mark reviewed:', err.response?.data || err.message)
+                                    }
+                                  }}
+                                  style={{
+                                    background: '#0D7C7C',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '8px 20px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    fontFamily: "'Space Grotesk', sans-serif"
+                                  }}
+                                >
+                                  ✓ Mark as Reviewed
+                                </button>
+                              )}
+                              {isReviewed && (
+                                <span style={{
+                                  fontSize: '13px',
+                                  color: '#9CA3AF',
+                                  fontStyle: 'italic',
+                                  padding: '8px 0',
+                                  fontFamily: "'Space Grotesk', sans-serif"
+                                }}>
+                                  Reviewed by regulatory team
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         </main>
       </div>
