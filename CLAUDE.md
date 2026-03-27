@@ -5,7 +5,7 @@
 
 ## What This Project Is
 
-MedAxis is a national prescription trust infrastructure for Morocco and Africa..
+MedAxis is a national prescription trust infrastructure for Morocco and Africa.
 It anchors every prescription to a verified Digital ID via MOSIP eSignet.
 It is NOT an EMR system. It does NOT store clinical records or biometrics.
 It creates a tamper-proof national prescription ledger.
@@ -51,16 +51,16 @@ Prescription fraud is structurally impossible because:
 
 ---
 
-## The 6 Core Demo Features — Build ONLY These First
+## The 6 Core Demo Features — ALL BUILT ✓
 
-1. Doctor logs in via eSignet mock → authenticated with role DOCTOR
-2. Doctor creates prescription → stored in SQLite linked to patient CNIE hash
-3. Pharmacist logs in via eSignet mock → authenticated with role PHARMACIST
-4. Pharmacist enters patient CNIE → sees all active prescriptions for that patient
-5. System shows three-check verification screen (Doctor VC valid / Prescription valid / Patient OTP verified)
-6. Pharmacist confirms dispensing → prescription marked DISPENSED, cannot be reused
+1. ✓ Doctor logs in via eSignet mock → authenticated with role DOCTOR
+2. ✓ Doctor creates prescription → stored in SQLite linked to patient CNIE hash
+3. ✓ Pharmacist logs in via eSignet mock → authenticated with role PHARMACIST
+4. ✓ Pharmacist enters patient CNIE → sees all active prescriptions for that patient
+5. ✓ System shows three-check verification screen (Doctor VC valid / Prescription valid / Patient OTP verified)
+6. ✓ Pharmacist confirms dispensing → prescription marked DISPENSED, cannot be reused
 
-Everything else is stretch. Do not build beyond these 6 until all 6 work perfectly.
+All 6 core features are complete. The project is now in Phase 6 (Polish & Demo Prep).
 
 ---
 
@@ -79,12 +79,12 @@ Everything else is stretch. Do not build beyond these 6 until all 6 work perfect
 
 ## Actors and Portals
 
-- Patient Portal — read-only prescription history, report unauthorized, submit insurance claim
-- Doctor Portal — authenticate, search patient, issue prescription, view history, cancel
-- Pharmacy Portal — authenticate, lookup by CNIE, three-check verification, dispense
-- Regulator Dashboard — national stats, audit trail, license management, register pharmacies
-- Admin Panel — user management, system config, full audit log
-- Insurer Portal — validate claims, query history, monthly reports
+- Patient Portal ✓ — read-only prescription history, report unauthorized, submit insurance claim
+- Doctor Portal ✓ — authenticate, search patient, issue prescription, view history, cancel
+- Pharmacy Portal ✓ — authenticate, lookup by CNIE, three-check verification, dispense
+- Regulator Dashboard ✓ — national stats, audit trail, license management, disputes, pharmacists
+- Admin Panel — user management, system config, full audit log (stretch)
+- Insurer Portal — validate claims, query history, monthly reports (stretch)
 
 ---
 
@@ -97,6 +97,8 @@ Everything else is stretch. Do not build beyond these 6 until all 6 work perfect
 - Dosage, frequency, duration
 - Timestamp, expiry date
 - Status: ACTIVE / DISPENSED / PARTIALLY_DISPENSED / EXPIRED / CANCELLED / FLAGGED / DISPUTED
+- is_flagged, is_disputed, is_reviewed flags
+- medications_json (optional structured list), notes (optional)
 
 ---
 
@@ -114,15 +116,30 @@ Everything else is stretch. Do not build beyond these 6 until all 6 work perfect
 
 ## Tech Stack — LOCKED, Never Change
 
-Frontend:  React 18+ + Vite 5+
-Backend:   Node.js 20+ + Express 4+
-ORM:       Prisma 5+
+Frontend:  React 19+ + Vite 8+
+Backend:   Node.js 20+ + Express 5+
+ORM:       Prisma 7+ (with better-sqlite3 adapter)
 Database:  SQLite (file: ./prisma/medaxis.db)
-Styling:   Tailwind CSS (custom config only — never default colors)
+Styling:   Inline styles throughout all portal components (never Tailwind classes in JSX)
+           Tailwind CSS installed but used only for global base styles in index.css
 HTTP:      Axios (frontend) + fetch (backend integrations)
 Auth:      JWT via jsonwebtoken library
-Password:  bcrypt
+Password:  bcryptjs
 Env:       dotenv
+Charts:    Inline SVG only — Recharts is NOT installed, do not add it
+
+Actual installed versions (do not downgrade):
+- react: 19.2.4
+- react-router-dom: 7.13.1
+- axios: 1.13.6
+- tailwindcss: 4.2.2
+- lucide-react: 0.577.0
+- express: 5.2.1
+- prisma: 7.5.0
+- better-sqlite3: 12.8.0
+- jsonwebtoken: 9.0.3
+- bcryptjs: 3.0.3
+- uuid: 13.0.0
 
 ---
 
@@ -133,7 +150,6 @@ medaxis-africa/
     agents/
       frontend-expert.md
       backend-developer.md
-      fullstack-developer.md  (removed per optimization)
       security-auditor.md
       code-reviewer.md
   docs/
@@ -146,22 +162,70 @@ medaxis-africa/
       regulator-dashboard.png
   frontend/
     src/
-      portals/        ← one folder per actor portal
-      components/     ← shared components only
-      api/            ← all axios calls, never inline
-      hooks/          ← custom React hooks
-      styles/         ← global CSS variables
-      utils/          ← helper functions
+      portals/
+        login/
+          login.jsx
+        doctor/
+          doctor-portal.jsx
+        pharmacy/
+          pharmacy-portal.jsx
+          verification-screen.jsx
+        patient/
+          patient-portal.jsx
+        regulator/
+          regulator-dashboard.jsx       ← main shell + dashboard view + disputes
+          regulator-prescriptions-view.jsx  ← full prescriptions registry view
+          regulator-statistics-view.jsx     ← SVG charts analytics view
+          doctor-licenses-view.jsx          ← license management + approve/revoke
+      components/
+        layout.jsx
+        protected-route.jsx
+        toast.jsx
+      api/
+        auth.js
+        patients.js
+        prescriptions.js
+        pharmacy.js
+        regulator.js
+      hooks/
+        use-auth.jsx
+      utils/
+        hash.utils.js
+        mock-data.js
+      styles/
+        index.css
   backend/
     src/
-      routes/         ← one file per resource
-      controllers/    ← business logic
-      middleware/     ← auth, RBAC, audit logging
-      services/       ← MOSIP integrations
-      utils/          ← helpers
+      routes/
+        auth.routes.js
+        prescriptions.routes.js
+        patients.routes.js
+        pharmacy.routes.js
+        regulator.routes.js
+        insurance.routes.js
+      controllers/
+        auth.controller.js
+        prescriptions.controller.js
+        patients.controller.js
+        pharmacy.controller.js
+        regulator.controller.js
+        insurance.controller.js
+      middleware/
+        auth.middleware.js
+        rbac.middleware.js
+        audit.middleware.js
+        error.middleware.js
+      services/
+        esignet.service.js
+        inji.service.js
+      utils/
+        hash.utils.js
+        prisma.js
+        response.utils.js
     prisma/
       schema.prisma
       seed.js
+      medaxis.db
   CLAUDE.md
   DESIGN.md
   todo.md
@@ -171,14 +235,21 @@ medaxis-africa/
 
 ## Database Models
 
-Doctor, Pharmacist, Patient, Prescription, DispensingEvent,
-LicenseVC, InsuranceClaim, AuditLog, Pharmacy, Admin, Regulator, Insurer
+User, Doctor, Pharmacist, Patient, Regulator, Pharmacy,
+Prescription, DispensingEvent, LicenseVC, InsuranceClaim,
+AuditLog, DoctorStatusChange, OTPSession
 
 Privacy rules for database:
 - Store CNIE_hash not raw CNIE
 - Store phone_hash not raw phone number
 - Never store biometrics
 - Never store clinical notes or diagnoses
+
+Key schema notes:
+- Doctor.status field values: ACTIVE / SUSPENDED / EXPIRED / REVOKED
+- Prescription.status values: ACTIVE / DISPENSED / PARTIALLY_DISPENSED / EXPIRED / CANCELLED / FLAGGED / DISPUTED
+- Prescription has is_flagged, is_disputed, is_reviewed boolean fields
+- DoctorStatusChange tracks every license status transition with reason + changed_by
 
 ---
 
@@ -194,20 +265,39 @@ Privacy rules for database:
 - Unauthorized → HTTP 403
 - Unauthenticated → HTTP 401
 
-## API Endpoints
+## API Endpoints — Complete List
 
+### Auth
 - POST /api/auth/login — mock eSignet login, returns JWT with role
 - GET /api/auth/me — current user profile
-- GET /api/patients/search?cnie=xxx — returns patient token + first name only
-- POST /api/prescriptions — create prescription
-- GET /api/prescriptions/my — doctor's own history
-- GET /api/prescriptions/by-patient/:cnie_hash — pharmacy lookup
-- PATCH /api/prescriptions/:rx_id/cancel — cancel prescription
-- POST /api/prescriptions/:rx_id/dispense — dispense medication
 - POST /api/auth/send-otp — send OTP to patient phone
-- POST /api/auth/verify-otp — verify OTP
-- GET /api/regulator/stats — national dashboard stats
+- POST /api/auth/verify-otp — verify OTP (5 min TTL, 3 attempts max)
+
+### Patients
+- GET /api/patients/search?cnie=xxx — returns patient token + first name only
+
+### Prescriptions
+- POST /api/prescriptions — create prescription (DOCTOR only)
+- GET /api/prescriptions/my — doctor's own history (DOCTOR only)
+- GET /api/prescriptions/by-patient/:cnie_hash — pharmacy lookup (PHARMACIST only)
+- PATCH /api/prescriptions/:rx_id/cancel — cancel prescription (DOCTOR only)
+- POST /api/prescriptions/:rx_id/dispense — dispense medication (PHARMACIST only)
 - GET /api/prescriptions/:rx_id/audit — full audit trail
+- POST /api/prescriptions/:rx_id/dispute — patient reports unauthorized (PATIENT only)
+- GET /api/prescriptions/patient-view — patient's own history (PATIENT only)
+
+### Regulator
+- GET /api/regulator/stats?region=X&status=Y&dateFrom=Z&dateTo=W — national stats with filter support
+- GET /api/regulator/prescriptions?region=X&status=Y&search=Z&page=N&limit=10 — paginated registry
+- GET /api/regulator/doctors?region=X&license_status=Y&search=Z&page=N&limit=10 — doctor registry
+- PATCH /api/regulator/doctors/:doctor_id/approve — set license_status=ACTIVE + AuditLog
+- PATCH /api/regulator/doctors/:doctor_id/revoke — set license_status=SUSPENDED + AuditLog
+- PATCH /api/regulator/doctors/:doctor_id/status — generic status update (legacy)
+- GET /api/regulator/pharmacists — all pharmacists list
+- GET /api/regulator/disputes — all disputed prescriptions
+- PATCH /api/regulator/disputes/:rx_id/review — mark dispute reviewed
+
+### Insurance
 - POST /api/insurance/claims — submit claim
 - GET /api/insurance/claims — monthly report
 
@@ -220,6 +310,10 @@ DOCTOR, PHARMACIST, PATIENT, REGULATOR, INSURER, ADMIN
 Each endpoint has an explicit allowed roles list.
 Unauthorized access returns HTTP 403 with no data leak.
 Role assignment happens at account creation.
+
+Regulator endpoints accept: REGULATOR, ADMIN
+Doctor approve/revoke: REGULATOR, ADMIN
+Doctor status (legacy): REGULATOR only
 
 ---
 
@@ -250,6 +344,22 @@ Backend (.env):
 
 ---
 
+## Seed / Demo Credentials
+
+Seeded in backend/prisma/seed.js. Run: npm run seed
+
+  Doctor:     CNIE=DOCTOR001, role=DOCTOR, name=Dr. Ahmed
+              License: MED-MAR-8829, Specialty: General Medicine
+              Region: Casablanca-Settat, Facility: Clinique Internationale
+  Pharmacist: CNIE=PHARM001, role=PHARMACIST, name=Youssef
+              Pharmacy: Pharmacie Atlas, Casablanca-Settat
+  Patient:    CNIE=PATIENT001, role=PATIENT, name=Karima
+  Regulator:  CNIE=REGULATOR001, role=REGULATOR, name=Fatima
+
+Demo prescription: RX-DEMO-0001 (Amoxicillin 500mg, ACTIVE, expires 30 days from seed date)
+
+---
+
 ## Identity Stack (MOSIP)
 
 - eSignet: OIDC authentication for all actors via CNIE — backend integration
@@ -258,10 +368,32 @@ Backend (.env):
 - Inji Wallet: APK on doctor's phone to store license VC — no custom code needed
 
 MOSIP integration strategy:
-- Week 1-2: Mock eSignet — hardcoded JWT returned on login
+- Week 1-2: Mock eSignet — hardcoded JWT returned on login ← CURRENT STATE
 - Week 3: Real eSignet sandbox via Docker Compose
 - Inji Verify SDK: installed as npm package in frontend pharmacy portal
 - Inji Certify: HTTP calls from backend/src/services/ folder
+
+---
+
+## Regulator Dashboard — 5 Views (all built)
+
+The regulator portal is a single-page shell (regulator-dashboard.jsx) that
+renders one of 5 views based on `activeNav` state. Views are separate files:
+
+1. dashboard (default) — stats cards (clickable) + filter bar + prescription table + charts
+   - Card 1 (Total Prescriptions) → clicks to Prescriptions view
+   - Card 2 (Registered Doctors) → clicks to Doctor Licenses view
+   - Card 3 (Active Pharmacies) → opens pharmacists modal
+   - Filter bar: Region dropdown + Status dropdown + From/To date range
+   - Region bar chart highlights selected region, dims others
+   - Verification Latency widget (static system metric)
+2. table — RegulatorPrescriptionsView: paginated prescription registry with search + filters
+3. stats — RegulatorStatisticsView: SVG line chart + SVG donut chart (no Recharts)
+4. disputes — inline disputes view with expand/review workflow (already working)
+5. licenses — DoctorLicensesView: doctor registry + approve/revoke with AuditLog
+
+Sidebar nav items: Dashboard | Prescriptions | Statistics | Disputes | Doctor Licenses
+System Logs was removed — it had no purpose.
 
 ---
 
@@ -281,19 +413,22 @@ MOSIP integration strategy:
 - Never use localStorage for JWT — use httpOnly cookies or memory only
 - Never return full patient PII from any endpoint
 - Never skip audit logging on state-changing operations
-- Never use Inter, Roboto, Arial or system fonts
+- Never use Inter, Roboto, Arial or system fonts — Space Grotesk only
 - Never use default Tailwind color palette
+- Never use Tailwind utility classes in portal JSX — inline styles only
 - Never invent features not listed in this file
 - Never switch libraries without being explicitly asked
+- Never install Recharts or any chart library — use inline SVG
 - Never skip input validation on any endpoint
 - Never expose raw CNIE numbers in API responses
 - Never store passwords in plain text
-- Never add drop shadows to UI components
+- Never add drop shadows to UI components (boxShadow: forbidden)
 - Never use gradient buttons
 - Never use white backgrounds with blue buttons (not a SaaS app)
 - Never commit .env files
 - Never commit node_modules
-- Never use white background with generic blue buttons
+- Never touch Doctor Portal, Pharmacy Portal, Patient Portal, or Login
+  when working on the Regulator Dashboard — they are complete and working
 
 ---
 
@@ -316,8 +451,10 @@ When building any portal always reference the matching mockup image.
 Key design rules:
 - Light theme — white and light grey-teal (#F5F7F5) backgrounds
 - Primary color: #0D7C7C teal
-- Font: Space Grotesk — LOCKED
+- Font: Space Grotesk — LOCKED (every element, inline fontFamily always)
+- Monospace: JetBrains Mono — for RxIDs, license numbers, prescription codes only
 - Government healthcare aesthetic — Ministry of Health / WHO feel
-- Borders not shadows
-- Status dots not badges
+- Borders not shadows (border: '1px solid #E5E7EB' — never boxShadow)
+- Status dots not badges (7px circle, no pill shapes)
 - No gradients, no illustrations, no generic SaaS patterns
+- All styling via inline style={{}} objects — never Tailwind classes in portals
