@@ -1,7 +1,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useAuth } from '../../hooks/use-auth'
 import Toast, { useToast } from '../../components/toast'
-import { getRegulatorStatsAPI, getDisputesAPI, markDisputeReviewedAPI } from '../../api/regulator'
+import { getRegulatorStatsAPI, getDisputesAPI, markDisputeReviewedAPI, getPharmacistsAPI } from '../../api/regulator'
+import RegulatorPrescriptionsView from './regulator-prescriptions-view'
+import RegulatorStatisticsView from './regulator-statistics-view'
+import DoctorLicensesView from './doctor-licenses-view'
 
 // ---------------------------------------------------------------------------
 // Mock data — exact values from mockup spec
@@ -182,7 +185,6 @@ export default function RegulatorDashboard() {
   const { visible: toastVisible, showToast } = useToast()
 
   const [activeNav, setActiveNav]           = useState('dashboard')
-  const [searchQuery, setSearchQuery]       = useState('')
   const [currentPage]                       = useState(1)
   const [stats, setStats]                   = useState(null)
   const [disputes, setDisputes]             = useState([])
@@ -190,11 +192,46 @@ export default function RegulatorDashboard() {
   const [expandedDispute, setExpandedDispute] = useState(null)
   const [reviewedDisputes, setReviewedDisputes] = useState(new Set())
 
+  const [filters, setFilters] = useState({
+    region: 'All Morocco',
+    status: 'All Records',
+    dateFrom: '2026-01-01',
+    dateTo: '2026-12-31',
+  })
+
+  const [actionToast, setActionToast] = useState(null)
+  const [pharmacistsModal, setPharmacistsModal] = useState(false)
+  const [pharmacists, setPharmacists] = useState([])
+  const [pharmacistsLoading, setPharmacistsLoading] = useState(false)
+
+  const showSuccessToast = useCallback((msg) => {
+    setActionToast({ message: msg, variant: 'success' })
+    setTimeout(() => setActionToast(null), 3000)
+  }, [])
+
+  const showErrorToast = useCallback((msg) => {
+    setActionToast({ message: msg, variant: 'error' })
+    setTimeout(() => setActionToast(null), 3000)
+  }, [])
+
+  const openPharmacistsModal = useCallback(async () => {
+    setPharmacistsModal(true)
+    setPharmacistsLoading(true)
+    try {
+      const result = await getPharmacistsAPI(token)
+      if (result.success) setPharmacists(result.data.pharmacists)
+    } catch (err) {
+      console.error('Failed to load pharmacists:', err)
+    } finally {
+      setPharmacistsLoading(false)
+    }
+  }, [token])
+
   useEffect(() => {
     if (!token) return
     const refreshStats = async () => {
       try {
-        const result = await getRegulatorStatsAPI(token)
+        const result = await getRegulatorStatsAPI(token, filters)
         if (result.success) setStats(result.data)
       } catch (err) {
         console.error('Failed to load regulator stats:', err)
@@ -203,7 +240,7 @@ export default function RegulatorDashboard() {
     refreshStats()
     const interval = setInterval(refreshStats, 30000)
     return () => clearInterval(interval)
-  }, [token])
+  }, [token, filters])
 
   useEffect(() => {
     if (activeNav !== 'disputes' || !token) return
@@ -234,7 +271,6 @@ export default function RegulatorDashboard() {
     { key: 'stats',     label: 'Statistics',      icon: 'bar_chart',     badge: null },
     { key: 'disputes',  label: 'Disputes',         icon: 'flag',          badge: stats?.disputed > 0 ? stats.disputed : null },
     { key: 'licenses',  label: 'Doctor Licenses', icon: 'verified_user', badge: null },
-    { key: 'logs',      label: 'System Logs',     icon: 'history',       badge: null },
   ]
 
   const mainRef  = useRef(null)
@@ -243,17 +279,7 @@ export default function RegulatorDashboard() {
 
   const handleNav = useCallback((key) => {
     setActiveNav(key)
-    if (key === 'dashboard') {
-      if (mainRef.current) mainRef.current.scrollTop = 0
-    } else if (key === 'table') {
-      if (tableRef.current) tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    } else if (key === 'stats') {
-      if (statsRef.current) statsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    } else if (key === 'licenses' || key === 'logs') {
-      showToast()
-    }
-    // 'disputes' just sets activeNav — the view conditional handles the rest
-  }, [showToast])
+  }, [])
 
   const prescriptionRows = stats?.prescriptions
     ? stats.prescriptions.map(rx => ({
@@ -267,18 +293,7 @@ export default function RegulatorDashboard() {
       }))
     : MOCK_PRESCRIPTIONS
 
-  const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return prescriptionRows
-    const q = searchQuery.toLowerCase()
-    return prescriptionRows.filter(r =>
-      (r.id || '').toLowerCase().includes(q) ||
-      (r.practitioner || '').toLowerCase().includes(q) ||
-      (r.facility || '').toLowerCase().includes(q) ||
-      (r.region || '').toLowerCase().includes(q)
-    )
-  }, [searchQuery, prescriptionRows])
-
-  const handleSearchChange = useCallback(e => setSearchQuery(e.target.value), [])
+  const filteredRows = prescriptionRows
 
   return (
     /* ── Full-screen takeover — escapes Layout wrapper ── */
@@ -440,10 +455,10 @@ export default function RegulatorDashboard() {
         </aside>
 
         {/* ── Main content ────────────────────────────────────────────────── */}
-        <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: activeNav === 'disputes' ? 0 : 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <main ref={mainRef} style={{ flex: 1, overflowY: 'auto', padding: (activeNav === 'disputes' || activeNav === 'table' || activeNav === 'stats' || activeNav === 'licenses') ? 0 : 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
           {/* ── Dashboard view ── */}
-          {activeNav !== 'disputes' && <>
+          {activeNav === 'dashboard' && <>
 
           {/* ── Page header ── */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -524,12 +539,16 @@ export default function RegulatorDashboard() {
           {/* ── Three stats cards ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             {/* Card 1 */}
-            <div style={{
-              backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
-              borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-              borderBottom: '3px solid #0D7C7C',
-            }}>
+            <div
+              onClick={() => setActiveNav('table')}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0FAFA' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#FFFFFF' }}
+              style={{
+                backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
+                borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                borderBottom: '3px solid #0D7C7C', cursor: 'pointer',
+              }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{
                   width: 36, height: 36, backgroundColor: '#E6F3F3', borderRadius: 6,
@@ -549,19 +568,23 @@ export default function RegulatorDashboard() {
                   Total Prescriptions
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
-                  {stats ? (stats.total || stats.totalPrescriptions || '—').toLocaleString() : '1,284,902'}
+                  {stats ? ((stats.total_prescriptions ?? stats.total) ?? '—').toLocaleString() : '—'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#0D7C7C' }}>↗ 12.4% vs last month</div>
               </div>
             </div>
 
             {/* Card 2 */}
-            <div style={{
-              backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
-              borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-              borderBottom: '3px solid #0D7C7C',
-            }}>
+            <div
+              onClick={() => setActiveNav('licenses')}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0FAFA' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#FFFFFF' }}
+              style={{
+                backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
+                borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                borderBottom: '3px solid #0D7C7C', cursor: 'pointer',
+              }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{
                   width: 36, height: 36, backgroundColor: '#E6F3F3', borderRadius: 6,
@@ -581,19 +604,23 @@ export default function RegulatorDashboard() {
                   Registered Doctors
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
-                  {stats ? (stats.doctors || stats.registeredDoctors || '—').toLocaleString() : '42,150'}
+                  {stats ? ((stats.active_doctors ?? stats.doctors) ?? '—').toLocaleString() : '—'}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280' }}>👤 892 new registrations</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7280' }}>{stats ? `${stats.total_doctors || 0} total registered` : '0 total registered'}</div>
               </div>
             </div>
 
             {/* Card 3 */}
-            <div style={{
-              backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
-              borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-              borderBottom: '3px solid #0D7C7C',
-            }}>
+            <div
+              onClick={openPharmacistsModal}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0FAFA' }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#FFFFFF' }}
+              style={{
+                backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
+                borderRadius: 8, padding: 20, height: 160, boxSizing: 'border-box',
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                borderBottom: '3px solid #0D7C7C', cursor: 'pointer',
+              }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{
                   width: 36, height: 36, backgroundColor: '#E6F3F3', borderRadius: 6,
@@ -613,7 +640,7 @@ export default function RegulatorDashboard() {
                   Active Pharmacies
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#1A1A2E', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
-                  {stats ? (stats.pharmacies || stats.activePharmacies || '—').toLocaleString() : '18,294'}
+                  {stats ? ((stats.total_pharmacists ?? stats.pharmacies) ?? '—').toLocaleString() : '—'}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#0D7C7C' }}>✓ 99.8% compliance rate</div>
               </div>
@@ -626,55 +653,70 @@ export default function RegulatorDashboard() {
             borderRadius: 8, padding: 16,
           }}>
             {/* Chips row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{
                 fontSize: 11, fontWeight: 700, color: '#6B7280',
                 textTransform: 'uppercase', letterSpacing: '0.08em',
                 display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                fontFamily: "'Space Grotesk', sans-serif",
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>filter_list</span>
                 FILTERS:
               </span>
-              <FilterChip>
-                Region: All Morocco&nbsp;
-                <span className="material-symbols-outlined" style={{ fontSize: 13 }}>expand_more</span>
-              </FilterChip>
-              <FilterChip>
-                Status: All Records&nbsp;
-                <span className="material-symbols-outlined" style={{ fontSize: 13 }}>expand_more</span>
-              </FilterChip>
-              <FilterChip>
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>calendar_month</span>
-                Oct 01 – Oct 31, 2023
-              </FilterChip>
-            </div>
-
-            {/* Search row */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                position: 'absolute', left: 12, pointerEvents: 'none',
-                display: 'flex', alignItems: 'center', color: '#9CA3AF',
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>search</span>
-              </span>
-              <input
-                type="text"
-                placeholder="Search by ID or Doctor..."
-                value={searchQuery}
-                onChange={handleSearchChange}
+              <select
+                value={filters.region}
+                onChange={e => setFilters(f => ({ ...f, region: e.target.value }))}
                 style={{
-                  width: '100%', height: 40,
-                  paddingLeft: 40, paddingRight: 14,
-                  border: '1px solid #E5E7EB', borderRadius: 4,
-                  fontSize: 13, color: '#1A1A2E',
-                  backgroundColor: '#FFFFFF',
-                  fontFamily: "'Inter', sans-serif",
-                  outline: 'none', transition: 'border-color 0.15s',
-                  boxSizing: 'border-box',
+                  height: 36, padding: '0 10px', border: '1px solid #E5E7EB',
+                  borderRadius: 6, fontSize: 12, fontWeight: 500, color: '#374151',
+                  cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+                  backgroundColor: '#FFFFFF', outline: 'none',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#0D7C7C' }}
-                onBlur={e => { e.currentTarget.style.borderColor = '#E5E7EB' }}
-              />
+              >
+                {['All Morocco','Casablanca-Settat','Rabat-Salé-Kénitra','Marrakech-Safi','Fès-Meknès','Tanger-Tétouan'].map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <select
+                value={filters.status}
+                onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+                style={{
+                  height: 36, padding: '0 10px', border: '1px solid #E5E7EB',
+                  borderRadius: 6, fontSize: 12, fontWeight: 500, color: '#374151',
+                  cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif",
+                  backgroundColor: '#FFFFFF', outline: 'none',
+                }}
+              >
+                {['All Records','Active','Dispensed','Expired','Cancelled','Disputed'].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: '#9CA3AF', fontFamily: "'Space Grotesk', sans-serif" }}>From</span>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
+                  style={{
+                    height: 36, padding: '0 8px', border: '1px solid #E5E7EB',
+                    borderRadius: 6, fontSize: 12, color: '#374151',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    backgroundColor: '#FFFFFF', outline: 'none', cursor: 'pointer',
+                  }}
+                />
+                <span style={{ fontSize: 11, color: '#9CA3AF', fontFamily: "'Space Grotesk', sans-serif" }}>To</span>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))}
+                  style={{
+                    height: 36, padding: '0 8px', border: '1px solid #E5E7EB',
+                    borderRadius: 6, fontSize: 12, color: '#374151',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    backgroundColor: '#FFFFFF', outline: 'none', cursor: 'pointer',
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -846,7 +888,8 @@ export default function RegulatorDashboard() {
                       <div style={{ height: 24, backgroundColor: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
                         <div style={{
                           width: `${pct}%`, height: '100%',
-                          backgroundColor: i === 0 ? '#0D7C7C' : '#6DB8B8',
+                          backgroundColor: (filters.region === 'All Morocco' || r.name === filters.region) ? '#0D7C7C' : '#A7D4D4',
+                          opacity: (filters.region !== 'All Morocco' && r.name !== filters.region) ? 0.4 : 1,
                           borderRadius: 4,
                           transition: 'width 0.4s ease',
                         }} />
@@ -863,7 +906,7 @@ export default function RegulatorDashboard() {
               }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#0D7C7C', display: 'inline-block' }} />
                 <span style={{ fontSize: 11, color: '#0D7C7C', fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Top Activity: Casablanca-Settat
+                  {filters.region === 'All Morocco' ? 'Top Activity: Casablanca-Settat' : `Filtered: ${filters.region}`}
                 </span>
               </div>
             </div>
@@ -1166,10 +1209,162 @@ export default function RegulatorDashboard() {
             </div>
           )}
 
+          {activeNav === 'table' && (
+            <RegulatorPrescriptionsView token={token} />
+          )}
+
+          {activeNav === 'stats' && (
+            <RegulatorStatisticsView stats={stats} />
+          )}
+
+          {activeNav === 'licenses' && (
+            <DoctorLicensesView
+              token={token}
+              onSuccess={showSuccessToast}
+              onError={showErrorToast}
+            />
+          )}
+
         </main>
       </div>
 
       <Toast visible={toastVisible} />
+
+      {/* ── Pharmacists modal ── */}
+      {pharmacistsModal && (
+        <div
+          onClick={() => setPharmacistsModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: 8, width: 580,
+              maxHeight: '70vh', display: 'flex', flexDirection: 'column',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
+          >
+            {/* Modal header */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+              padding: '20px 24px 16px', borderBottom: '1px solid #E5E7EB', flexShrink: 0,
+            }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', letterSpacing: '-0.01em' }}>
+                  Active Pharmacies
+                </div>
+                <div style={{ fontSize: 13, color: '#6B7280', marginTop: 3 }}>
+                  Verified pharmacists registered on MedAxis
+                </div>
+              </div>
+              <button
+                onClick={() => setPharmacistsModal(false)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 20, color: '#6B7280', lineHeight: 1,
+                  padding: '2px 6px', borderRadius: 4,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#1A1A2E' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#6B7280' }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {pharmacistsLoading ? (
+                <div style={{ padding: 48, textAlign: 'center', fontSize: 13, color: '#6B7280' }}>
+                  Loading...
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                      {['NAME', 'LICENSE NO.', 'FACILITY', 'REGION', 'STATUS'].map(col => (
+                        <th key={col} style={{
+                          padding: '10px 16px', textAlign: 'left',
+                          fontSize: 10, fontWeight: 700, color: '#9CA3AF',
+                          letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                          fontFamily: "'Space Grotesk', sans-serif",
+                        }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pharmacists.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                          No pharmacists registered.
+                        </td>
+                      </tr>
+                    ) : pharmacists.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid #F3F4F6', height: 48 }}>
+                        <td style={{ padding: '0 16px', fontSize: 13, fontWeight: 600, color: '#1A1A2E', fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {p.full_name}
+                        </td>
+                        <td style={{ padding: '0 16px', fontSize: 11, fontWeight: 600, color: '#0D7C7C', fontFamily: "'JetBrains Mono', monospace" }}>
+                          {p.license_number}
+                        </td>
+                        <td style={{ padding: '0 16px', fontSize: 12, color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {p.facility}
+                        </td>
+                        <td style={{ padding: '0 16px', fontSize: 12, color: '#374151', fontFamily: "'Space Grotesk', sans-serif" }}>
+                          {p.region}
+                        </td>
+                        <td style={{ padding: '0 16px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#0D7C7C', display: 'inline-block', flexShrink: 0 }} />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#0D7C7C', fontFamily: "'Space Grotesk', sans-serif" }}>Active</span>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            {!pharmacistsLoading && (
+              <div style={{
+                padding: '12px 24px', borderTop: '1px solid #E5E7EB', flexShrink: 0,
+                fontSize: 12, color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif",
+              }}>
+                {pharmacists.length} pharmacist{pharmacists.length !== 1 ? 's' : ''} registered on the network
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {actionToast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          backgroundColor: '#FFFFFF',
+          border: `1px solid ${actionToast.variant === 'success' ? '#0D7C7C' : '#E53E3E'}`,
+          borderLeft: `4px solid ${actionToast.variant === 'success' ? '#0D7C7C' : '#E53E3E'}`,
+          borderRadius: 8, padding: '12px 20px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 13, fontWeight: 600,
+          color: actionToast.variant === 'success' ? '#0D7C7C' : '#E53E3E',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            {actionToast.variant === 'success' ? 'check_circle' : 'error'}
+          </span>
+          {actionToast.message}
+        </div>
+      )}
     </div>
   )
 }
