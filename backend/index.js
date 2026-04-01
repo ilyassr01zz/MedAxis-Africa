@@ -42,7 +42,7 @@ app.get('/api/health', (req, res) => {
 
 app.use(require('./src/middleware/error.middleware'));
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
   console.log(`MedAxis API running on port ${PORT}`);
 });

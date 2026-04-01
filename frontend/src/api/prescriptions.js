@@ -1,5 +1,5 @@
 // MedAxis Africa — Prescriptions API (Real Backend Layer)
-// All calls go to the Express backend on port 3001.
+// All calls go to the Express backend on port 3005.
 // All requests include Authorization: Bearer <token> headers.
 
 import axios from 'axios';

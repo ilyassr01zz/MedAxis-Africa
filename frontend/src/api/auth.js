@@ -1,5 +1,5 @@
 // MedAxis Africa — Auth API (Real Backend Layer)
-// Connects to Express backend on port 3001.
+// Connects to Express backend on port 3005.
 // JWT is stored in memory only — NEVER in localStorage or sessionStorage.
 
 import axios from 'axios';
