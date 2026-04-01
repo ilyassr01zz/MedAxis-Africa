@@ -404,6 +404,68 @@ export default function VerificationScreen() {
           {/* Horizontal divider */}
           <div style={{ height: 1, backgroundColor: BORDER, margin: '40px 0' }} />
 
+          {/* Verify Prescription VC Section */}
+          <div style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 24,
+            marginBottom: 32,
+          }}>
+            {/* Section heading */}
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              <h2 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 20, fontWeight: 700,
+                color: TEXT,
+                margin: '0 0 8px',
+              }}>
+                Verify Prescription VC
+              </h2>
+              <p style={{
+                fontSize: 14, color: MUTED,
+                margin: 0, lineHeight: 1.5,
+              }}>
+                Scan or upload the patient's Verifiable Credential QR code
+              </p>
+            </div>
+
+            {/* Open Inji Verify button */}
+            <button
+              onClick={() => window.open('http://localhost:3000', '_blank')}
+              style={{
+                background: TEAL,
+                color: 'white',
+                border: 'none',
+                padding: '10px 24px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 600,
+                transition: 'background-color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_DARK }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
+            >
+              Open Inji Verify
+            </button>
+
+            {/* Info box */}
+            <div style={{
+              width: '100%',
+              backgroundColor: '#F5F7F5',
+              border: '1px solid #E5E7EB',
+              borderRadius: 6,
+              padding: '12px 16px',
+              fontSize: 13,
+              color: '#6B7280',
+              fontFamily: "'Space Grotesk', sans-serif",
+              textAlign: 'center',
+              lineHeight: 1.5,
+            }}>
+              Present the prescription QR code in the Inji Verify window to validate the Verifiable Credential before dispensing.
+            </div>
+          </div>
+
           {/* Error message */}
           {dispenseError && (
             <div role="alert" style={{
