@@ -100,6 +100,7 @@ model Prescription {
   is_flagged        Boolean  @default(false)
   is_disputed       Boolean  @default(false)
   is_reviewed       Boolean  @default(false)
+  vc_qr_code        String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
