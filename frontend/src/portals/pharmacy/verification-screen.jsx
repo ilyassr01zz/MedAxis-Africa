@@ -70,27 +70,49 @@ function SpinnerIcon() {
 
 // ─── VerificationCard ─────────────────────────────────────────────────────────
 const VerificationCard = React.memo(function VerificationCard({
-  icon, title, detail1Label, detail1Value, detail2Label, detail2Value, isMonoDetail1 = false,
+  icon, title, detail1Label, detail1Value, detail2Label, detail2Value, isMonoDetail1 = false, isVerified = false,
 }) {
+  const GREY = '#D1D5DB'
+  const GREY_LIGHT = '#F3F4F6'
+  const iconColor = isVerified ? TEAL : GREY
+  const bgColor = isVerified ? TEAL : GREY_LIGHT
+  const borderColor = isVerified ? TEAL : BORDER
+  const statusText = isVerified ? 'Verified ✓' : 'Pending Verification'
+  const statusColor = isVerified ? WHITE : GREY
+
   return (
     <article style={{
       backgroundColor: WHITE,
-      border: `1px solid ${BORDER}`,
+      border: `1px solid ${borderColor}`,
       borderRadius: 12,
       padding: 32,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       textAlign: 'center',
+      transition: 'border-color 0.3s ease',
     }}>
       {/* Icon circle */}
       <div style={{
         width: 64, height: 64, borderRadius: '50%',
-        backgroundColor: '#E6F4F4',
+        backgroundColor: bgColor,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 20, flexShrink: 0,
+        transition: 'background-color 0.3s ease',
       }}>
-        {icon}
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transition: 'stroke 0.3s ease' }}>
+          {isVerified ? (
+            <>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9 12l2 2 4-4" />
+            </>
+          ) : (
+            <>
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="2" />
+            </>
+          )}
+        </svg>
       </div>
 
       {/* Title */}
@@ -126,21 +148,31 @@ const VerificationCard = React.memo(function VerificationCard({
         </div>
       </div>
 
-      {/* AUTHENTICATED button — full width */}
+      {/* Status badge — full width */}
       <div style={{
         width: '100%', height: 44,
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        backgroundColor: TEAL, color: WHITE,
+        backgroundColor: bgColor, color: statusColor,
         borderRadius: 8,
         fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
         textTransform: 'uppercase',
         fontFamily: "'Space Grotesk', sans-serif",
+        transition: 'background-color 0.3s ease, color 0.3s ease',
       }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9 12l2 2 4-4" />
-        </svg>
-        Authenticated
+        {isVerified ? (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            {statusText}
+          </>
+        ) : (
+          <>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: GREY }} />
+            {statusText}
+          </>
+        )}
       </div>
     </article>
   )
@@ -196,6 +228,7 @@ export default function VerificationScreen() {
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSuccess, setIsSuccess]       = useState(false)
   const [dispenseError, setDispenseError] = useState(null)
+  const [isVerified, setIsVerified] = useState(false)
 
   const doctorIdDisplay = 'MDR-893-PKB'
   const serialDisplay   = rxId ?? 'RX-889-2024-01'
@@ -203,7 +236,7 @@ export default function VerificationScreen() {
   const identityToken   = 'K891...A'
 
   const handleConfirmDispense = useCallback(async () => {
-    if (isConfirming || isSuccess) return
+    if (isConfirming || isSuccess || !isVerified) return
     setIsConfirming(true)
     setDispenseError(null)
 
@@ -221,7 +254,7 @@ export default function VerificationScreen() {
 
     setIsConfirming(false)
     setIsSuccess(true)
-  }, [rxId, isConfirming, isSuccess, user])
+  }, [rxId, isConfirming, isSuccess, isVerified, user])
 
   const handleCancel = useCallback(() => {
     navigate('/pharmacy')
@@ -380,6 +413,7 @@ export default function VerificationScreen() {
               isMonoDetail1={true}
               detail2Label="Credential Status"
               detail2Value="Active"
+              isVerified={isVerified}
             />
             <VerificationCard
               icon={<DocumentIcon />}
@@ -389,6 +423,7 @@ export default function VerificationScreen() {
               isMonoDetail1={true}
               detail2Label="Dosage Match"
               detail2Value={dosageLabel}
+              isVerified={isVerified}
             />
             <VerificationCard
               icon={<IdentityIcon />}
@@ -398,6 +433,7 @@ export default function VerificationScreen() {
               isMonoDetail1={true}
               detail2Label="DOB"
               detail2Value="12/04/1984"
+              isVerified={isVerified}
             />
           </div>
 
@@ -449,6 +485,28 @@ export default function VerificationScreen() {
               Open Inji Verify
             </button>
 
+            {/* Verification checkbox */}
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              cursor: 'pointer',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 14,
+              color: TEXT,
+              userSelect: 'none',
+            }}>
+              <input
+                type="checkbox"
+                checked={isVerified}
+                onChange={e => setIsVerified(e.target.checked)}
+                style={{
+                  width: 18, height: 18,
+                  cursor: 'pointer',
+                  accentColor: TEAL,
+                }}
+              />
+              I confirm the patient's Verifiable Credential has been verified in Inji Verify
+            </label>
+
             {/* Info box */}
             <div style={{
               width: '100%',
@@ -483,7 +541,7 @@ export default function VerificationScreen() {
           )}
 
           {/* Warning + Confirm + Cancel */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, position: 'relative' }}>
 
             {/* Warning notice */}
             <div style={{
@@ -495,31 +553,56 @@ export default function VerificationScreen() {
               <span>Dispensing this medication will create a permanent regulatory record in the national database.</span>
             </div>
 
-            {/* Confirm Dispense button */}
-            <button
-              onClick={handleConfirmDispense}
-              disabled={isConfirming}
-              style={{
-                width: 280, height: 56,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                backgroundColor: isConfirming ? TEAL_DARK : TEAL,
-                color: WHITE,
-                border: 'none', borderRadius: 8,
-                fontSize: 15, fontWeight: 700,
-                cursor: isConfirming ? 'not-allowed' : 'pointer',
-                fontFamily: "'Space Grotesk', sans-serif",
-                transition: 'background-color 0.15s',
-                opacity: isConfirming ? 0.85 : 1,
-              }}
-              onMouseEnter={e => { if (!isConfirming) e.currentTarget.style.backgroundColor = TEAL_DARK }}
-              onMouseLeave={e => { if (!isConfirming) e.currentTarget.style.backgroundColor = TEAL }}
-            >
-              {isConfirming ? (
-                <><SpinnerIcon /> Confirming...</>
-              ) : (
-                'Confirm Dispense →'
+            {/* Confirm Dispense button — with tooltip container */}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                onClick={handleConfirmDispense}
+                disabled={isConfirming || !isVerified}
+                style={{
+                  width: 280, height: 56,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  backgroundColor: isConfirming || !isVerified ? '#D1D5DB' : TEAL,
+                  color: WHITE,
+                  border: 'none', borderRadius: 8,
+                  fontSize: 15, fontWeight: 700,
+                  cursor: isConfirming || !isVerified ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  transition: 'background-color 0.15s',
+                  opacity: isConfirming ? 0.85 : 1,
+                }}
+                onMouseEnter={e => { if (!isConfirming && isVerified) e.currentTarget.style.backgroundColor = TEAL_DARK }}
+                onMouseLeave={e => { if (!isConfirming && isVerified) e.currentTarget.style.backgroundColor = TEAL }}
+                title={!isVerified ? 'Complete verification first' : ''}
+              >
+                {isConfirming ? (
+                  <><SpinnerIcon /> Confirming...</>
+                ) : (
+                  'Confirm Dispense →'
+                )}
+              </button>
+
+              {/* Tooltip for disabled state */}
+              {!isVerified && !isConfirming && (
+                <div style={{
+                  position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                  marginBottom: 8, padding: '6px 12px',
+                  backgroundColor: TEXT, color: WHITE,
+                  borderRadius: 4, fontSize: 12,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                }}>
+                  Complete verification first
+                  <div style={{
+                    position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                    width: 0, height: 0,
+                    borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
+                    borderTop: `4px solid ${TEXT}`,
+                  }} />
+                </div>
               )}
-            </button>
+            </div>
 
             {/* Cancel link */}
             <button
