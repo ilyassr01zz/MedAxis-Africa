@@ -47,48 +47,47 @@ const createPrescription = async (req, res) => {
       }
     });
 
+    console.log('=== GENERATING QR CODE ===', prescription.rx_id);
+
     // Generate W3C Verifiable Credential for the prescription
     const vc = {
-      "@context": [
-        "https://www.w3.org/2018/credentials/v1",
-        "https://w3id.org/security/suites/ed25519-2020/v1"
-      ],
+      "@context": ["https://www.w3.org/2018/credentials/v1"],
       "type": ["VerifiableCredential", "PrescriptionCredential"],
       "issuer": "did:web:ilyassr01zz.github.io:medaxis-did:certify",
       "issuanceDate": new Date().toISOString(),
-      "expirationDate": new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       "credentialSubject": {
-        "id": `did:medaxis:prescription:${prescription.rx_id}`,
-        "type": "MedicalPrescription",
         "prescriptionId": prescription.rx_id,
-        "doctorId": prescription.doctor_id,
-        "patientToken": prescription.patient_id,
         "medication": prescription.drug_name,
         "dosage": prescription.dosage,
-        "frequency": prescription.frequency,
-        "durationDays": prescription.duration_days,
-        "issuanceDate": prescription.created_at,
-        "expiryDate": prescription.expiry_date,
-        "status": "ACTIVE",
-        "issuerDID": "did:web:ilyassr01zz.github.io:medaxis-did:certify"
+        "status": "ACTIVE"
       }
     };
 
     // Generate QR code from VC JSON
     try {
-      const vcString = JSON.stringify(vc);
-      const qrCodeDataUrl = await QRCode.toDataURL(vcString, {
+      const qrBuffer = await QRCode.toBuffer(JSON.stringify(vc), {
         errorCorrectionLevel: 'H',
-        type: 'image/png',
-        width: 300,
-        margin: 1
+        type: 'png',
+        width: 1024,
+        margin: 8,
+        scale: 16,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
       });
 
+      const qrCodeDataUrl = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+      console.log('=== QR CODE GENERATED ===', !!qrCodeDataUrl, 'length:', qrCodeDataUrl.length);
+
       // Update prescription with QR code
-      await prisma.prescription.update({
+      const updatedPrescription = await prisma.prescription.update({
         where: { rx_id },
         data: { vc_qr_code: qrCodeDataUrl }
       });
+
+      console.log('=== QR CODE SAVED ===', !!updatedPrescription.vc_qr_code);
 
       prescription.vc_qr_code = qrCodeDataUrl;
     } catch (qrError) {

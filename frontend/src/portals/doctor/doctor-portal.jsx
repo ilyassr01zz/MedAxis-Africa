@@ -207,6 +207,7 @@ export default function DoctorPortal() {
             issuedAt:    rx.issuedAt,
             expiresAt:   rx.expiresAt,
             notes:       rx.notes || '',
+            vc_qr_code:  rx.vc_qr_code || null,
             status:      rx.status || 'ACTIVE',
           }))
           setPrescriptions(mapped)
@@ -359,6 +360,7 @@ export default function DoctorPortal() {
               issuedAt:    rx.issuedAt,
               expiresAt:   rx.expiresAt,
               notes:       rx.notes || '',
+              vc_qr_code:  rx.vc_qr_code || null,
               status:      rx.status || 'ACTIVE',
             }))
             setPrescriptions(mapped)

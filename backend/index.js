@@ -42,7 +42,28 @@ app.get('/api/health', (req, res) => {
 
 app.use(require('./src/middleware/error.middleware'));
 
-const PORT = process.env.PORT || 3005;
-app.listen(PORT, () => {
-  console.log(`MedAxis API running on port ${PORT}`);
-});
+const DEFAULT_PORT = 3005;
+const START_PORT = Number(process.env.PORT) || DEFAULT_PORT;
+const MAX_PORT_RETRIES = 10;
+
+function startServer(port, retriesLeft = MAX_PORT_RETRIES) {
+  const server = app.listen(port, () => {
+    console.log(`MedAxis API running on port ${port}`);
+  });
+
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE' && retriesLeft > 0) {
+      const nextPort = port + 1;
+      console.warn(`Port ${port} is busy. Retrying on ${nextPort}...`);
+      startServer(nextPort, retriesLeft - 1);
+      return;
+    }
+
+    console.error('Failed to start MedAxis API:', error);
+    process.exit(1);
+  });
+
+  return server;
+}
+
+startServer(START_PORT);
