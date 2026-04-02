@@ -207,6 +207,7 @@ export default function DoctorPortal() {
             issuedAt:    rx.issuedAt,
             expiresAt:   rx.expiresAt,
             notes:       rx.notes || '',
+            vc_qr_code:  rx.vc_qr_code || null,
             status:      rx.status || 'ACTIVE',
           }))
           setPrescriptions(mapped)
@@ -359,6 +360,7 @@ export default function DoctorPortal() {
               issuedAt:    rx.issuedAt,
               expiresAt:   rx.expiresAt,
               notes:       rx.notes || '',
+              vc_qr_code:  rx.vc_qr_code || null,
               status:      rx.status || 'ACTIVE',
             }))
             setPrescriptions(mapped)
@@ -1310,6 +1312,53 @@ function RxTable({ compact, expanded, prescriptions: rows }) {
                         </div>
                       )}
                     </div>
+
+                    {/* Prescription Verifiable Credential */}
+                    {rx.vc_qr_code && (
+                      <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px dashed ${BORDER}` }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                          Prescription Verifiable Credential
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                            <img
+                              src={rx.vc_qr_code}
+                              alt="Prescription VC QR Code"
+                              style={{ width: 150, height: 150, border: `1px solid ${BORDER}`, borderRadius: 4 }}
+                            />
+                            <span style={{ fontSize: 11, color: MUTED, fontStyle: 'italic' }}>Scan with Inji Verify</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a')
+                              link.href = rx.vc_qr_code
+                              link.download = `prescription-${rx.rxId}-vc.png`
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                            }}
+                            style={{
+                              padding: '8px 16px',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: WHITE,
+                              backgroundColor: TEAL,
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontFamily: "'Space Grotesk', sans-serif",
+                              transition: 'background-color 0.15s',
+                              alignSelf: 'flex-start',
+                              marginTop: 4
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_DARK }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
+                          >
+                            Download VC QR
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )}

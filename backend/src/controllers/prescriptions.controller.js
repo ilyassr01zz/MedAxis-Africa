@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const QRCode = require('qrcode');
 const { success, error } = require('../utils/response.utils');
 const prisma = require('../utils/prisma');
 
@@ -45,6 +46,55 @@ const createPrescription = async (req, res) => {
         notes: req.body.notes || null,
       }
     });
+
+    console.log('=== GENERATING QR CODE ===', prescription.rx_id);
+
+    // Generate W3C Verifiable Credential for the prescription
+    const vc = {
+      "@context": ["https://www.w3.org/2018/credentials/v1"],
+      "type": ["VerifiableCredential", "PrescriptionCredential"],
+      "issuer": "did:web:ilyassr01zz.github.io:medaxis-did:certify",
+      "issuanceDate": new Date().toISOString(),
+      "credentialSubject": {
+        "prescriptionId": prescription.rx_id,
+        "medication": prescription.drug_name,
+        "dosage": prescription.dosage,
+        "status": "ACTIVE"
+      }
+    };
+
+    // Generate QR code from VC JSON
+    try {
+      const qrBuffer = await QRCode.toBuffer(JSON.stringify(vc), {
+        errorCorrectionLevel: 'H',
+        type: 'png',
+        width: 1024,
+        margin: 8,
+        scale: 16,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      const qrCodeDataUrl = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+      console.log('=== QR CODE GENERATED ===', !!qrCodeDataUrl, 'length:', qrCodeDataUrl.length);
+
+      // Update prescription with QR code
+      const updatedPrescription = await prisma.prescription.update({
+        where: { rx_id },
+        data: { vc_qr_code: qrCodeDataUrl }
+      });
+
+      console.log('=== QR CODE SAVED ===', !!updatedPrescription.vc_qr_code);
+
+      prescription.vc_qr_code = qrCodeDataUrl;
+    } catch (qrError) {
+      console.error('[createPrescription] QR code generation failed:', qrError);
+      // Continue without QR code; don't fail the entire request
+    }
+
     await prisma.auditLog.create({
       data: {
         user_id: req.user.id,
@@ -130,6 +180,7 @@ const getMyPrescriptions = async (req, res) => {
         issuedAt: p.created_at,
         expiresAt: p.expiry_date,
         status,
+        vc_qr_code: p.vc_qr_code || null,
       };
     });
 
@@ -167,7 +218,8 @@ const getByPatient = async (req, res) => {
 
     const updatedPrescriptions = prescriptions.map(p => ({
       ...p,
-      status: p.status === 'ACTIVE' && p.expiry_date < now ? 'EXPIRED' : p.status
+      status: p.status === 'ACTIVE' && p.expiry_date < now ? 'EXPIRED' : p.status,
+      vc_qr_code: p.vc_qr_code || null
     }));
 
     return success(res, {

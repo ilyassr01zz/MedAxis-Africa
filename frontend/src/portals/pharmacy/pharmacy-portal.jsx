@@ -1217,7 +1217,7 @@ function LookupMedicationExpansion({ meds, rx, rxId }) {
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 24, fontSize: 11, color: MUTED }}>
+      <div style={{ display: 'flex', gap: 24, fontSize: 11, color: MUTED, marginBottom: 14 }}>
         <span>
           <span style={{ fontFamily: "'JetBrains Mono', monospace", color: TEAL, fontWeight: 600 }}>{rxId}</span>
         </span>
@@ -1230,6 +1230,55 @@ function LookupMedicationExpansion({ meds, rx, rxId }) {
           </span>
         )}
       </div>
+
+      {/* Prescription VC QR Code */}
+      {rx.vc_qr_code && (
+        <div style={{ borderTop: `1px dashed ${BORDER}`, paddingTop: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Verifiable Credential
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <img
+              src={rx.vc_qr_code}
+              alt="Prescription VC QR Code"
+              style={{ width: 120, height: 120, border: `1px solid ${BORDER}`, borderRadius: 4 }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: TEXT, fontWeight: 600 }}>Prescription VC</span>
+              <span style={{ fontSize: 11, color: MUTED }}>Upload to Inji Verify for validation</span>
+              <button
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = rx.vc_qr_code
+                  link.download = `prescription-${rx.rx_id}-vc.png`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
+                style={{
+                  width: 'fit-content',
+                  padding: '6px 12px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: WHITE,
+                  backgroundColor: TEAL,
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  transition: 'background-color 0.15s',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = TEAL_DARK }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = TEAL }}
+              >
+                Download VC
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

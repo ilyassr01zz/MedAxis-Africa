@@ -209,7 +209,7 @@ const FILTER_OPTIONS = ['All', 'Active', 'Completed', 'Pending', 'Expired']
 
 // ─── PrescriptionCard ──────────────────────────────────────────────────────────
 
-const PrescriptionCard = ({ prescription, onAction, onReport }) => {
+const PrescriptionCard = ({ prescription, onAction, onReport, onShowVC }) => {
   const config = STATUS_CONFIG[prescription.displayStatus || prescription.status] || STATUS_CONFIG.ACTIVE
   const { ButtonIcon } = config
 
@@ -307,33 +307,64 @@ const PrescriptionCard = ({ prescription, onAction, onReport }) => {
           </p>
         </div>
 
-        <button
-          onClick={() => onAction(prescription)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            padding: '7px 14px',
-            backgroundColor: 'transparent',
-            border: `1.5px solid ${config.buttonColor}`,
-            borderRadius: '4px',
-            color: config.buttonColor,
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: '12px', fontWeight: 600,
-            cursor: 'pointer', letterSpacing: '0.02em',
-            transition: 'background-color 0.15s ease, color 0.15s ease',
-            whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = config.buttonColor
-            e.currentTarget.style.color = '#FFFFFF'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.color = config.buttonColor
-          }}
-        >
-          <ButtonIcon />
-          {config.buttonLabel}
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={() => onAction(prescription)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '7px 14px',
+              backgroundColor: 'transparent',
+              border: `1.5px solid ${config.buttonColor}`,
+              borderRadius: '4px',
+              color: config.buttonColor,
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', letterSpacing: '0.02em',
+              transition: 'background-color 0.15s ease, color 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = config.buttonColor
+              e.currentTarget.style.color = '#FFFFFF'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+              e.currentTarget.style.color = config.buttonColor
+            }}
+          >
+            <ButtonIcon />
+            {config.buttonLabel}
+          </button>
+
+          {prescription.vc_qr_code && (
+            <button
+              onClick={() => onShowVC(prescription)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '7px 14px',
+                backgroundColor: 'transparent',
+                border: '1.5px solid #0D7C7C',
+                borderRadius: '4px',
+                color: '#0D7C7C',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', letterSpacing: '0.02em',
+                transition: 'background-color 0.15s ease, color 0.15s ease',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = '#0D7C7C'
+                e.currentTarget.style.color = '#FFFFFF'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.color = '#0D7C7C'
+              }}
+            >
+              QR Code
+            </button>
+          )}
+        </div>
 
         {['ACTIVE', 'DISPENSED', 'PARTIALLY_DISPENSED'].includes(prescription.status) && !prescription.is_disputed && !prescription.is_reviewed && (
           <button
@@ -378,6 +409,7 @@ export default function PatientPortal() {
   const [disputeSubmitting, setDisputeSubmitting] = useState(false)
   const [disputeSuccess, setDisputeSuccess]     = useState(false)
   const [disputeError, setDisputeError]         = useState('')
+  const [vcModal, setVcModal]                   = useState({ open: false, prescription: null })
 
   useEffect(() => {
     if (!token) return
@@ -464,6 +496,14 @@ export default function PatientPortal() {
     setDisputeReason('')
     setDisputeSuccess(false)
     setDisputeError('')
+  }
+
+  const openVCModal = (prescription) => {
+    setVcModal({ open: true, prescription })
+  }
+
+  const closeVCModal = () => {
+    setVcModal({ open: false, prescription: null })
   }
 
   const submitDispute = async () => {
@@ -733,7 +773,7 @@ export default function PatientPortal() {
         ) : visiblePrescriptions.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {visiblePrescriptions.map(rx => (
-              <PrescriptionCard key={rx.id} prescription={rx} onAction={handleAction} onReport={openDisputeModal} />
+              <PrescriptionCard key={rx.id} prescription={rx} onAction={handleAction} onReport={openDisputeModal} onShowVC={openVCModal} />
             ))}
           </div>
         ) : (
@@ -936,6 +976,103 @@ export default function PatientPortal() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── VC QR Code Modal ──────────────────────────────────────── */}
+      {vcModal.open && vcModal.prescription?.vc_qr_code && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '480px',
+            border: '1px solid #E5E7EB',
+            textAlign: 'center'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1A1A2E', marginBottom: '4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Prescription Verifiable Credential
+                </h3>
+                <p style={{ fontSize: '13px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Present to your pharmacist
+                </p>
+              </div>
+              <button onClick={closeVCModal} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#6B7280', fontSize: '20px', lineHeight: 1, padding: '4px'
+              }}>✕</button>
+            </div>
+
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+              marginBottom: '24px'
+            }}>
+              <img
+                src={vcModal.prescription.vc_qr_code}
+                alt="Prescription VC QR Code"
+                style={{ width: 200, height: 200, border: '1px solid #E5E7EB', borderRadius: 8 }}
+              />
+              <p style={{ fontSize: '13px', color: '#6B7280', fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
+                Prescription ID: <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: '#0D7C7C' }}>
+                  {vcModal.prescription.rx_id || vcModal.prescription.rxId}
+                </span>
+              </p>
+            </div>
+
+            <div style={{
+              background: '#F0FDF4',
+              border: '1px solid #16A34A',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              color: '#15803D',
+              fontFamily: "'Space Grotesk', sans-serif"
+            }}>
+              Present this QR code to your pharmacist for verification
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={closeVCModal} style={{
+                flex: 1, height: '44px',
+                background: 'none', border: '1px solid #E5E7EB',
+                borderRadius: '8px', cursor: 'pointer',
+                fontSize: '14px', fontWeight: '600', color: '#6B7280',
+                fontFamily: "'Space Grotesk', sans-serif"
+              }}>
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = vcModal.prescription.vc_qr_code
+                  link.download = `prescription-${vcModal.prescription.rx_id}-vc.png`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
+                style={{
+                  flex: 1, height: '44px',
+                  background: '#0D7C7C', border: 'none', borderRadius: '8px',
+                  cursor: 'pointer', fontSize: '14px', fontWeight: '700', color: '#FFFFFF',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  transition: 'background-color 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#0A6363' }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#0D7C7C' }}
+              >
+                Download for Pharmacy
+              </button>
+            </div>
           </div>
         </div>
       )}
