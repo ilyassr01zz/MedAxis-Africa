@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/use-auth'
 
 const TEAL   = '#0D7C7C'
@@ -19,7 +20,88 @@ export default function LoginPage() {
   const [username, setUsername]         = useState('')
   const [password, setPassword]         = useState('')
   const [roleError, setRoleError]       = useState('')
-  const { login, loading, error }       = useAuth()
+  const [esignetError, setEsignetError] = useState('')
+  const { login, loginDirect, loading, error } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const callbackHandled = useRef(false)
+
+  // Handle eSignet callback
+  useEffect(() => {
+    // Guard: only run once
+    if (callbackHandled.current) return
+
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    if (code && state) {
+      callbackHandled.current = true
+      handleEsignetCallback(code, state);
+      return;
+    }
+
+    // Initialize eSignet button
+    const timer = setTimeout(() => {
+      if (window.SignInWithEsignetButton) {
+        window.SignInWithEsignetButton.init({
+          oidcConfig: {
+            authorizeUri: "http://localhost:3007/authorize",
+            redirect_uri: "http://localhost:5173/login",
+            client_id: "medaxis-client",
+            scope: "openid profile",
+            nonce: Math.random().toString(36).substring(2),
+            state: Math.random().toString(36).substring(2),
+            acrValues: "mosip:idp:acr:static-code",
+            display: "page",
+            prompt: "login",
+            maxAge: 21097600
+          },
+          buttonConfig: {
+            shape: "soft_edges",
+            labelText: "Sign in with Digital ID",
+            background: "#0D7C7C",
+            textColor: "#FFFFFF",
+            borderColor: "#0D7C7C",
+            font: "Space Grotesk",
+            width: "100%"
+          },
+          signInElement: document.getElementById("esignet-btn")
+        });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [])
+
+  const handleEsignetCallback = async (code, state) => {
+    try {
+      setEsignetError('')
+      const apiUrl = import.meta.env.VITE_API_URL
+      const response = await fetch(`${apiUrl}/auth/esignet/callback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, state })
+      })
+
+      const data = await response.json()
+      if (data.success && data.data.token) {
+        // Build user object from eSignet response
+        const user = {
+          id: data.data.id || `esignet-${Date.now()}`,
+          first_name: data.data.first_name || 'eSignet User',
+          name: data.data.first_name || 'eSignet User',
+          role: data.data.role || 'PATIENT'
+        }
+
+        // Store token in AuthContext using loginDirect (same way as regular login)
+        loginDirect(data.data.token, user)
+      } else {
+        setEsignetError(data.error || 'eSignet authentication failed')
+      }
+    } catch (err) {
+      console.error('eSignet callback error:', err)
+      setEsignetError('Failed to process eSignet response')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -244,6 +326,25 @@ export default function LoginPage() {
                 {roleError}
               </p>
             )}
+
+            {/* OR divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0' }}>
+              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
+              <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                OR
+              </span>
+              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
+            </div>
+
+            {/* eSignet error */}
+            {esignetError && (
+              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>
+                {esignetError}
+              </p>
+            )}
+
+            {/* eSignet button container */}
+            <div id="esignet-btn" style={{ marginBottom: 20 }} />
 
             {/* Encrypted session */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
