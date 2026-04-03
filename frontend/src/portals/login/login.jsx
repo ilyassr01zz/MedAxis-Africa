@@ -110,283 +110,386 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: BG, fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: BG, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .login-left-panel { display: none !important; }
+          .login-right-panel { width: 100% !important; }
+        }
+      `}</style>
 
-      {/* ── Top navbar ──────────────────────────────────────────────── */}
-      <header style={{
-        height: 56,
-        padding: '0 32px',
+      {/* ════════════════════════════════════════════════════════════
+          LEFT PANEL (40% width, teal background)
+          ════════════════════════════════════════════════════════════ */}
+      <div className="login-left-panel" style={{
+        width: '40%',
+        backgroundColor: TEAL,
+        color: '#fff',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderBottom: `1px solid ${BORDER}`,
-        flexShrink: 0,
+        justifyContent: 'center',
+        padding: '48px 40px',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32,
-            backgroundColor: TEAL,
-            borderRadius: 4,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        {/* Geometric pattern overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.08) 35px, rgba(255,255,255,0.08) 70px)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 360 }}>
+          {/* Top section */}
+          <img src="/medaxis-logo.png" alt="MedAxis" style={{
+            width: 120,
+            height: 'auto',
+            marginBottom: 20,
+            filter: 'brightness(0) invert(1)',
+          }} />
+
+          <h1 style={{
+            fontSize: 28,
+            fontWeight: 700,
+            margin: '0 0 8px',
+            textAlign: 'center',
           }}>
-            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 18, lineHeight: 1 }}>
-              health_and_safety
-            </span>
+            MedAxis Africa
+          </h1>
+
+          <p style={{
+            fontSize: 14,
+            opacity: 0.8,
+            margin: 0,
+            textAlign: 'center',
+            lineHeight: 1.4,
+          }}>
+            National Prescription Trust Infrastructure
+          </p>
+
+          {/* Middle section */}
+          <div style={{ marginTop: 48, textAlign: 'center' }}>
+            <p style={{
+              fontSize: 20,
+              fontWeight: 700,
+              margin: '0 0 16px',
+            }}>
+              Secure. Verified. Trusted.
+            </p>
+
+            <p style={{
+              fontSize: 14,
+              opacity: 0.75,
+              margin: 0,
+              lineHeight: 1.6,
+              maxWidth: 280,
+            }}>
+              Morocco's digital prescription system powered by MOSIP Digital ID — connecting doctors, pharmacists, and patients through cryptographic identity verification.
+            </p>
           </div>
-          <span style={{ fontWeight: 700, fontSize: 18, color: TEAL, letterSpacing: '-0.02em' }}>MedAxis</span>
+
+          {/* Bottom section */}
+          <div style={{ marginTop: 48, width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              'Powered by MOSIP eSignet',
+              'W3C Verifiable Credentials',
+              'End-to-End Encrypted'
+            ].map((badge) => (
+              <div key={badge} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 13,
+                opacity: 0.9,
+                justifyContent: 'center',
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+                {badge}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer text */}
+          <div style={{
+            marginTop: 64,
+            paddingTop: 24,
+            borderTop: '1px solid rgba(255,255,255,0.2)',
+            fontSize: 12,
+            opacity: 0.5,
+            textAlign: 'center',
+          }}>
+            Kingdom of Morocco · Ministry of Health
+          </div>
+        </div>
+      </div>
+
+      {/* ════════════════════════════════════════════════════════════
+          RIGHT PANEL (60% width, light background)
+          ════════════════════════════════════════════════════════════ */}
+      <div className="login-right-panel" style={{
+        width: '60%',
+        backgroundColor: BG,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '48px',
+        overflowY: 'auto',
+        boxSizing: 'border-box',
+      }}>
+
+        {/* System header */}
+        <div style={{ marginBottom: 48 }}>
+          <h1 style={{
+            fontSize: 26,
+            fontWeight: 700,
+            color: TEXT,
+            margin: '0 0 12px',
+            letterSpacing: '-0.02em',
+          }}>
+            System Authentication
+          </h1>
+          <p style={{
+            fontSize: 14,
+            color: MUTED,
+            margin: 0,
+          }}>
+            Secure access to National Health Infrastructure
+          </p>
         </div>
 
-        {/* Country labels */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 11, fontWeight: 600, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          <span>Kingdom of Morocco</span>
-          <span style={{ width: 1, height: 14, backgroundColor: BORDER }} />
-          <span>Ministry of Health</span>
-        </div>
-      </header>
+        {/* PRIMARY AUTH SECTION — eSignet */}
+        <div style={{ marginBottom: 40 }}>
+          <label style={{
+            display: 'block',
+            fontSize: 11,
+            fontWeight: 600,
+            color: TEAL,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            marginBottom: 12,
+          }}>
+            Authenticate with Digital ID
+          </label>
 
-      {/* ── Main ────────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
-        <div style={{ width: '100%', maxWidth: 520 }}>
-
-          {/* Card */}
           <div style={{
             backgroundColor: '#fff',
             border: `1px solid ${BORDER}`,
-            borderRadius: 2,
-            padding: '48px 40px',
+            borderRadius: 8,
+            padding: 24,
           }}>
+            <p style={{
+              fontSize: 13,
+              color: MUTED,
+              margin: '0 0 16px',
+              lineHeight: 1.5,
+            }}>
+              Use your Carte Nationale d'Identité Électronique (CNIE) to authenticate securely via eSignet
+            </p>
 
-            {/* Heading */}
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: TEXT, letterSpacing: '-0.02em', marginBottom: 6 }}>
-                System Authentication
-              </h1>
-              <p style={{ fontSize: 13, color: MUTED }}>
-                Secure access to National Health Infrastructure
-              </p>
-            </div>
-
-            {/* Role selector */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-                Select Professional Role
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {ROLES.map((role) => {
-                  const active = selectedRole === role.id
-                  return (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => { setSelectedRole(role.id); setRoleError('') }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        minHeight: 56,
-                        padding: '0 14px',
-                        border: active ? `2px solid ${TEAL}` : `1px solid ${BORDER}`,
-                        backgroundColor: active ? '#EBF5F5' : '#fff',
-                        borderRadius: 2,
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        fontWeight: active ? 600 : 500,
-                        color: active ? TEAL : MUTED,
-                        fontFamily: "'Space Grotesk', sans-serif",
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 20, color: active ? TEAL : '#9CA3AF' }}>
-                        {role.icon}
-                      </span>
-                      {role.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit}>
-              {/* Username / CNIE */}
-              <div style={{ marginBottom: 20 }}>
-                <label htmlFor="cnie" style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-                  Username / CNIE
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="cnie"
-                    type="text"
-                    value={username}
-                    onChange={(e) => { setUsername(e.target.value); setRoleError('') }}
-                    placeholder="Enter ID number"
-                    style={{
-                      width: '100%',
-                      height: 48,
-                      padding: '0 44px 0 14px',
-                      border: `1px solid ${BORDER}`,
-                      borderRadius: 2,
-                      fontSize: 14,
-                      color: TEXT,
-                      backgroundColor: '#fff',
-                      outline: 'none',
-                      fontFamily: "'Space Grotesk', sans-serif",
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.15s ease',
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = TEAL)}
-                    onBlur={(e)  => (e.target.style.borderColor = BORDER)}
-                  />
-                  <span className="material-symbols-outlined" style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 20, color: '#D1D5DB', pointerEvents: 'none',
-                  }}>badge</span>
-                </div>
-              </div>
-
-              {/* Password */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label htmlFor="password" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Password
-                  </label>
-                  <a href="#" style={{ fontSize: 12, fontWeight: 600, color: TEAL, textDecoration: 'none' }}
-                    onMouseEnter={(e) => (e.target.style.textDecoration = 'underline')}
-                    onMouseLeave={(e) => (e.target.style.textDecoration = 'none')}>
-                    Forgot access?
-                  </a>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setRoleError('') }}
-                    placeholder="••••••••"
-                    style={{
-                      width: '100%',
-                      height: 48,
-                      padding: '0 44px 0 14px',
-                      border: `1px solid ${BORDER}`,
-                      borderRadius: 2,
-                      fontSize: 14,
-                      color: TEXT,
-                      backgroundColor: '#fff',
-                      outline: 'none',
-                      fontFamily: "'Space Grotesk', sans-serif",
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.15s ease',
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = TEAL)}
-                    onBlur={(e)  => (e.target.style.borderColor = BORDER)}
-                  />
-                  <span className="material-symbols-outlined" style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 20, color: '#D1D5DB', pointerEvents: 'none',
-                  }}>lock</span>
-                </div>
-              </div>
-
-              {/* Auth error (wrong credentials) */}
-              {error && (
-                <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>{error}</p>
-              )}
-
-              {/* Sign in button */}
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: 52,
-                  backgroundColor: loading ? '#6B7280' : TEAL,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 2,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  transition: 'opacity 0.15s ease',
-                }}
-                onMouseEnter={(e) => { if (!loading) e.target.style.opacity = '0.88' }}
-                onMouseLeave={(e) => { e.target.style.opacity = '1' }}
-              >
-                {loading ? 'Authenticating…' : 'Sign In to MedAxis'}
-              </button>
-            </form>
-
-            {/* Role mismatch error */}
-            {roleError && (
-              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginTop: 12, marginBottom: 0 }}>
-                {roleError}
-              </p>
-            )}
-
-            {/* OR divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0' }}>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
-              <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                OR
-              </span>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
-            </div>
-
-            {/* eSignet error */}
             {esignetError && (
-              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>
+              <p style={{ fontSize: 13, color: '#E53E3E', marginBottom: 12 }}>
                 {esignetError}
               </p>
             )}
 
-            {/* eSignet button container */}
-            <div id="esignet-btn" style={{ marginBottom: 20 }} />
+            <div id="esignet-btn" style={{ width: '100%' }} />
+          </div>
+        </div>
 
-            {/* Encrypted session */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: TEAL, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                End-to-End Encrypted Session
-              </span>
+        {/* DIVIDER */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          margin: '24px 0 32px',
+        }}>
+          <div style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+          <span style={{
+            fontSize: 12,
+            color: '#9CA3AF',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            whiteSpace: 'nowrap',
+          }}>
+            ou continuer avec
+          </span>
+          <div style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+        </div>
+
+        {/* SECONDARY AUTH SECTION — Traditional login */}
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#9CA3AF',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            marginBottom: 12,
+          }}>
+            Staff / Demo Access
+          </label>
+
+          {/* Role selector */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {ROLES.map((role) => {
+                const active = selectedRole === role.id
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    onClick={() => { setSelectedRole(role.id); setRoleError('') }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      minHeight: 44,
+                      padding: '0 10px',
+                      border: active ? `1px solid ${TEAL}` : `1px solid ${BORDER}`,
+                      backgroundColor: active ? '#F0FAFA' : '#fff',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      color: active ? TEAL : MUTED,
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18, color: active ? TEAL : '#9CA3AF' }}>
+                      {role.icon}
+                    </span>
+                    {role.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {/* Compliance notice — outside the card */}
-          <p style={{ textAlign: 'center', fontSize: 10, color: '#9CA3AF', lineHeight: 1.7, marginTop: 24, padding: '0 16px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-            Warning: This is a restricted government system. Unauthorized access attempts are logged and reported.
-            By logging in, you agree to the regulatory data processing protocols of the Ministry of Health.
-          </p>
-        </div>
-      </main>
+          {/* Form */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Username / CNIE */}
+            <div>
+              <label htmlFor="cnie" style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Username / CNIE
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="cnie"
+                  type="text"
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setRoleError('') }}
+                  placeholder="Enter ID number"
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    padding: '0 14px',
+                    border: `1px solid ${BORDER}`,
+                    borderRadius: 4,
+                    fontSize: 14,
+                    color: TEXT,
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = TEAL)}
+                  onBlur={(e) => (e.target.style.borderColor = BORDER)}
+                />
+              </div>
+            </div>
 
-      {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer style={{
-        padding: '12px 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderTop: `1px solid ${BORDER}`,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <span style={{ fontSize: 11, color: MUTED }}>Version 2.4.0-Clinical</span>
-          <span style={{ fontSize: 11, color: MUTED }}>Security Audit: PASS</span>
+            {/* Password */}
+            <div>
+              <label htmlFor="password" style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setRoleError('') }}
+                  placeholder="••••••••"
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    padding: '0 14px',
+                    border: `1px solid ${BORDER}`,
+                    borderRadius: 4,
+                    fontSize: 14,
+                    color: TEXT,
+                    backgroundColor: '#fff',
+                    outline: 'none',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = TEAL)}
+                  onBlur={(e) => (e.target.style.borderColor = BORDER)}
+                />
+              </div>
+            </div>
+
+            {/* Errors */}
+            {error && (
+              <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{error}</p>
+            )}
+            {roleError && (
+              <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{roleError}</p>
+            )}
+
+            {/* Sign in button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                height: 44,
+                backgroundColor: loading ? '#6B7280' : TEAL,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                fontSize: 13,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: "'Space Grotesk', sans-serif",
+                transition: 'opacity 0.15s ease',
+              }}
+              onMouseEnter={(e) => { if (!loading) e.target.style.opacity = '0.88' }}
+              onMouseLeave={(e) => { e.target.style.opacity = '1' }}
+            >
+              {loading ? 'Authenticating…' : 'Sign In to MedAxis'}
+            </button>
+          </form>
         </div>
-        <div style={{ display: 'flex', gap: 20 }}>
-          {['Privacy Policy', 'System Status', 'Support Portal'].map((label) => (
-            <a key={label} href="#" style={{ fontSize: 11, color: MUTED, textDecoration: 'none' }}
-              onMouseEnter={(e) => (e.target.style.color = TEAL)}
-              onMouseLeave={(e) => (e.target.style.color = MUTED)}>
-              {label}
-            </a>
-          ))}
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginTop: 'auto',
+          paddingTop: 32,
+          fontSize: 11,
+          fontWeight: 600,
+          color: MUTED,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: TEAL, flexShrink: 0 }} />
+          End-to-End Encrypted Session
         </div>
-      </footer>
+      </div>
     </div>
   )
 }
