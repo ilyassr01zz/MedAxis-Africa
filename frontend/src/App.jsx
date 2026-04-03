@@ -76,8 +76,10 @@ export default function App() {
         <Routes>
           {/* ----------------------------------------------------------------
               Public route — accessible to everyone
+              Both / and /login render the login page (eSignet callback redirects to /login)
           ---------------------------------------------------------------- */}
           <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
 
           {/* ----------------------------------------------------------------
               Doctor portal — role: DOCTOR (with sidebar layout)

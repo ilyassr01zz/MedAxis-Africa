@@ -75,6 +75,19 @@ export function AuthProvider({ children }) {
   )
 
   // -------------------------------------------------------------------------
+  // loginDirect — for OAuth/eSignet flows that already have token + user
+  // -------------------------------------------------------------------------
+  const loginDirect = useCallback(
+    (token, user) => {
+      setToken(token)
+      setUser(user)
+      const destination = ROLE_ROUTES[user.role] ?? '/'
+      navigate(destination, { replace: true })
+    },
+    [navigate],
+  )
+
+  // -------------------------------------------------------------------------
   // logout
   // -------------------------------------------------------------------------
   const logout = useCallback(() => {
@@ -98,9 +111,10 @@ export function AuthProvider({ children }) {
       error,
       isAuthenticated,
       login,
+      loginDirect,
       logout,
     }),
-    [user, token, loading, error, isAuthenticated, login, logout],
+    [user, token, loading, error, isAuthenticated, login, loginDirect, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
