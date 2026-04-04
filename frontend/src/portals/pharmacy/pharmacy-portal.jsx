@@ -454,13 +454,12 @@ export default function PharmacyPortal() {
           <span style={{ fontSize: 14, color: MUTED }}>Pharmacy Workspace</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center', color: WHITE, fontSize: 13, fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="material-symbols-outlined" style={{ fontSize: 20, color: MUTED }}>notifications</span></button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="material-symbols-outlined" style={{ fontSize: 20, color: MUTED }}>settings</span></button>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: TEAL, display: 'flex', alignItems: 'center', justifyContent: 'center', color: WHITE, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             {user?.first_name?.[0]?.toUpperCase() || 'P'}
           </div>
-          <button onClick={logout} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: MUTED, fontFamily: "'Space Grotesk', sans-serif" }}>
-            Logout
-          </button>
         </div>
       </header>
 
@@ -475,12 +474,8 @@ export default function PharmacyPortal() {
           overflowY: 'auto',
         }}>
           <div style={{ padding: '14px 16px 12px', borderBottom: `1px solid ${BORDER}` }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>
-              {user?.first_name ? `Pharmacist ${user.first_name}` : 'Pharmacist'}
-            </div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 2 }}>
-              Pharmacy Workspace
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TEXT }}>MedAxis Admin</div>
+            <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>Pharmacy Portal</div>
           </div>
           <nav style={{ flex: 1, padding: '8px 0' }}>
             {NAV_ITEMS.map(item => {
@@ -504,6 +499,12 @@ export default function PharmacyPortal() {
               )
             })}
           </nav>
+          <div style={{ padding: '12px 12px 16px', borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <button style={{ background: 'none', border: 'none', textAlign: 'left', padding: '6px 4px', fontSize: 12, color: MUTED, cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif" }}>Help Center</button>
+              <button onClick={logout} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '6px 4px', fontSize: 12, color: MUTED, cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif" }}>Logout</button>
+            </div>
+          </div>
         </aside>
 
         {/* ── Main content ─────────────────────────────────────────────────── */}

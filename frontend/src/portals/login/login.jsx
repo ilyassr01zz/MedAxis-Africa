@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/use-auth'
 
-const TEAL   = '#0D7C7C'
+const TEAL   = '#12A5A5'
 const BORDER = '#E5E7EB'
 const BG     = '#F5F7F5'
 const TEXT   = '#1A1A2E'
@@ -110,69 +110,237 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: BG, fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: BG, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .login-left-panel { display: none !important; }
+          .login-right-panel { width: 100% !important; }
+        }
+      `}</style>
 
-      {/* ── Top navbar ──────────────────────────────────────────────── */}
-      <header style={{
-        height: 56,
-        padding: '0 32px',
+      {/* ════════════════════════════════════════════════════════════
+          LEFT PANEL (38% width, solid teal background)
+          ════════════════════════════════════════════════════════════ */}
+      <div className="login-left-panel" style={{
+        width: '42%',
+        backgroundColor: TEAL,
+        color: '#fff',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderBottom: `1px solid ${BORDER}`,
-        flexShrink: 0,
+        justifyContent: 'center',
+        padding: '40px',
+        minHeight: '100vh',
+        boxSizing: 'border-box',
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32,
-            backgroundColor: TEAL,
-            borderRadius: 4,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        {/* Single centered group */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 360 }}>
+
+          {/* Logo */}
+          <img src="/MedAxis-logo.png" alt="MedAxis" style={{
+            width: '320px',
+            height: '320px',
+            objectFit: 'contain',
+          }} />
+
+          {/* Subtitle */}
+          <p style={{
+            color: 'rgba(255,255,255,0.8)',
+            fontSize: '15px',
+            margin: '8px 0 0 0',
+            fontFamily: "'Space Grotesk', sans-serif",
           }}>
-            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 18, lineHeight: 1 }}>
-              health_and_safety
-            </span>
+            National Prescription Trust Infrastructure
+          </p>
+
+          {/* Divider */}
+          <div style={{
+            width: '60%',
+            height: 1,
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            margin: '24px 0',
+          }} />
+
+          {/* Tagline */}
+          <p style={{
+            fontSize: 26,
+            fontWeight: 700,
+            color: '#fff',
+            margin: 0,
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Secure. Verified. Trusted.
+          </p>
+
+          {/* Description */}
+          <p style={{
+            fontSize: 15,
+            color: '#fff',
+            opacity: 0.75,
+            margin: '12px 0 0 0',
+            fontFamily: "'Space Grotesk', sans-serif",
+            lineHeight: 1.8,
+          }}>
+            Morocco's digital prescription system powered by MOSIP Digital ID — connecting doctors, pharmacists, and patients through cryptographic identity verification.
+          </p>
+
+          {/* Trust badges */}
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
+            {[
+              'Powered by MOSIP eSignet',
+              'W3C Verifiable Credentials',
+              'End-to-End Encrypted'
+            ].map((badge) => (
+              <div key={badge} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                fontSize: 15,
+                color: '#fff',
+                opacity: 0.9,
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}>
+                <span style={{ fontSize: 16 }}>✓</span>
+                {badge}
+              </div>
+            ))}
           </div>
-          <span style={{ fontWeight: 700, fontSize: 18, color: TEAL, letterSpacing: '-0.02em' }}>MedAxis</span>
-        </div>
 
-        {/* Country labels */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 11, fontWeight: 600, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          <span>Kingdom of Morocco</span>
-          <span style={{ width: 1, height: 14, backgroundColor: BORDER }} />
-          <span>Ministry of Health</span>
-        </div>
-      </header>
-
-      {/* ── Main ────────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
-        <div style={{ width: '100%', maxWidth: 520 }}>
-
-          {/* Card */}
+          {/* Footer */}
           <div style={{
-            backgroundColor: '#fff',
-            border: `1px solid ${BORDER}`,
-            borderRadius: 2,
-            padding: '48px 40px',
+            marginTop: 32,
+            fontSize: 13,
+            color: '#fff',
+            opacity: 0.5,
+            fontFamily: "'Space Grotesk', sans-serif",
+            letterSpacing: '0.02em',
           }}>
+            Kingdom of Morocco · Ministry of Health
+          </div>
+        </div>
+      </div>
 
-            {/* Heading */}
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 700, color: TEXT, letterSpacing: '-0.02em', marginBottom: 6 }}>
-                System Authentication
-              </h1>
-              <p style={{ fontSize: 13, color: MUTED }}>
-                Secure access to National Health Infrastructure
+      {/* ════════════════════════════════════════════════════════════
+          RIGHT PANEL (62% width, light background)
+          ════════════════════════════════════════════════════════════ */}
+      <div className="login-right-panel" style={{
+        width: '58%',
+        backgroundColor: BG,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '48px',
+        minHeight: '100vh',
+        overflowY: 'auto',
+        boxSizing: 'border-box',
+      }}>
+
+        {/* Content wrapper — max width centered */}
+        <div style={{ maxWidth: 560, width: '100%' }}>
+
+          {/* System header */}
+          <div style={{ marginBottom: 48 }}>
+            <h1 style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: TEXT,
+              margin: '0 0 12px',
+              letterSpacing: '-0.02em',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              System Authentication
+            </h1>
+            <p style={{
+              fontSize: 16,
+              color: MUTED,
+              margin: 0,
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              Secure access to National Health Infrastructure
+            </p>
+          </div>
+
+          {/* PRIMARY AUTH SECTION — eSignet */}
+          <div style={{ marginBottom: 40 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 600,
+              color: TEAL,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              marginBottom: 12,
+            }}>
+              Authenticate with Digital ID
+            </label>
+
+            <div style={{
+              backgroundColor: '#fff',
+              border: `1px solid ${BORDER}`,
+              borderRadius: 8,
+              padding: 24,
+            }}>
+              <p style={{
+                fontSize: 15,
+                color: MUTED,
+                margin: '0 0 16px',
+                lineHeight: 1.5,
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}>
+                Use your Carte Nationale d'Identité Électronique (CNIE) to authenticate securely via eSignet
               </p>
+
+              {esignetError && (
+                <p style={{ fontSize: 13, color: '#E53E3E', marginBottom: 12 }}>
+                  {esignetError}
+                </p>
+              )}
+
+              <div id="esignet-btn" style={{ width: '100%' }} />
             </div>
+          </div>
+
+          {/* DIVIDER */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            margin: '24px 0 32px',
+          }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+            <span style={{
+              fontSize: 13,
+              color: '#9CA3AF',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              whiteSpace: 'nowrap',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              or continue with
+            </span>
+            <div style={{ flex: 1, height: 1, backgroundColor: BORDER }} />
+          </div>
+
+          {/* SECONDARY AUTH SECTION — Traditional login */}
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#9CA3AF',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: 12,
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              Staff / Demo Access
+            </label>
 
             {/* Role selector */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-                Select Professional Role
-              </label>
+            <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {ROLES.map((role) => {
                   const active = selectedRole === role.id
@@ -184,14 +352,13 @@ export default function LoginPage() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 10,
-                        minHeight: 56,
-                        padding: '0 14px',
-                        border: active ? `2px solid ${TEAL}` : `1px solid ${BORDER}`,
-                        backgroundColor: active ? '#EBF5F5' : '#fff',
-                        borderRadius: 2,
+                        gap: 8,
+                        padding: '16px',
+                        border: active ? `1px solid ${TEAL}` : `1px solid ${BORDER}`,
+                        backgroundColor: active ? '#F0FAFA' : '#fff',
+                        borderRadius: 4,
                         cursor: 'pointer',
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: active ? 600 : 500,
                         color: active ? TEAL : MUTED,
                         fontFamily: "'Space Grotesk', sans-serif",
@@ -209,10 +376,10 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Username / CNIE */}
-              <div style={{ marginBottom: 20 }}>
-                <label htmlFor="cnie" style={{ display: 'block', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+              <div>
+                <label htmlFor="cnie" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>
                   Username / CNIE
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -224,11 +391,11 @@ export default function LoginPage() {
                     placeholder="Enter ID number"
                     style={{
                       width: '100%',
-                      height: 48,
-                      padding: '0 44px 0 14px',
+                      height: 52,
+                      padding: '0 14px',
                       border: `1px solid ${BORDER}`,
-                      borderRadius: 2,
-                      fontSize: 14,
+                      borderRadius: 4,
+                      fontSize: 16,
                       color: TEXT,
                       backgroundColor: '#fff',
                       outline: 'none',
@@ -237,27 +404,16 @@ export default function LoginPage() {
                       transition: 'border-color 0.15s ease',
                     }}
                     onFocus={(e) => (e.target.style.borderColor = TEAL)}
-                    onBlur={(e)  => (e.target.style.borderColor = BORDER)}
+                    onBlur={(e) => (e.target.style.borderColor = BORDER)}
                   />
-                  <span className="material-symbols-outlined" style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 20, color: '#D1D5DB', pointerEvents: 'none',
-                  }}>badge</span>
                 </div>
               </div>
 
               {/* Password */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label htmlFor="password" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Password
-                  </label>
-                  <a href="#" style={{ fontSize: 12, fontWeight: 600, color: TEAL, textDecoration: 'none' }}
-                    onMouseEnter={(e) => (e.target.style.textDecoration = 'underline')}
-                    onMouseLeave={(e) => (e.target.style.textDecoration = 'none')}>
-                    Forgot access?
-                  </a>
-                </div>
+              <div>
+                <label htmlFor="password" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Password
+                </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     id="password"
@@ -267,11 +423,11 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     style={{
                       width: '100%',
-                      height: 48,
-                      padding: '0 44px 0 14px',
+                      height: 52,
+                      padding: '0 14px',
                       border: `1px solid ${BORDER}`,
-                      borderRadius: 2,
-                      fontSize: 14,
+                      borderRadius: 4,
+                      fontSize: 16,
                       color: TEXT,
                       backgroundColor: '#fff',
                       outline: 'none',
@@ -280,18 +436,17 @@ export default function LoginPage() {
                       transition: 'border-color 0.15s ease',
                     }}
                     onFocus={(e) => (e.target.style.borderColor = TEAL)}
-                    onBlur={(e)  => (e.target.style.borderColor = BORDER)}
+                    onBlur={(e) => (e.target.style.borderColor = BORDER)}
                   />
-                  <span className="material-symbols-outlined" style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 20, color: '#D1D5DB', pointerEvents: 'none',
-                  }}>lock</span>
                 </div>
               </div>
 
-              {/* Auth error (wrong credentials) */}
+              {/* Errors */}
               {error && (
-                <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>{error}</p>
+                <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{error}</p>
+              )}
+              {roleError && (
+                <p style={{ fontSize: 13, color: '#E53E3E', margin: 0 }}>{roleError}</p>
               )}
 
               {/* Sign in button */}
@@ -299,14 +454,13 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 style={{
-                  width: '100%',
                   height: 52,
                   backgroundColor: loading ? '#6B7280' : TEAL,
                   color: '#fff',
                   border: 'none',
-                  borderRadius: 2,
-                  fontSize: 13,
-                  fontWeight: 700,
+                  borderRadius: 4,
+                  fontSize: 16,
+                  fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   cursor: loading ? 'not-allowed' : 'pointer',
@@ -319,74 +473,27 @@ export default function LoginPage() {
                 {loading ? 'Authenticating…' : 'Sign In to MedAxis'}
               </button>
             </form>
-
-            {/* Role mismatch error */}
-            {roleError && (
-              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginTop: 12, marginBottom: 0 }}>
-                {roleError}
-              </p>
-            )}
-
-            {/* OR divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '24px 0' }}>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
-              <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                OR
-              </span>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#D1D5DB' }} />
-            </div>
-
-            {/* eSignet error */}
-            {esignetError && (
-              <p style={{ fontSize: 13, color: '#E53E3E', textAlign: 'center', marginBottom: 12 }}>
-                {esignetError}
-              </p>
-            )}
-
-            {/* eSignet button container */}
-            <div id="esignet-btn" style={{ marginBottom: 20 }} />
-
-            {/* Encrypted session */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: TEAL, flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                End-to-End Encrypted Session
-              </span>
-            </div>
           </div>
 
-          {/* Compliance notice — outside the card */}
-          <p style={{ textAlign: 'center', fontSize: 10, color: '#9CA3AF', lineHeight: 1.7, marginTop: 24, padding: '0 16px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-            Warning: This is a restricted government system. Unauthorized access attempts are logged and reported.
-            By logging in, you agree to the regulatory data processing protocols of the Ministry of Health.
-          </p>
+          {/* Footer */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            marginTop: 32,
+            fontSize: 13,
+            fontWeight: 600,
+            color: MUTED,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: TEAL, flexShrink: 0 }} />
+            End-to-End Encrypted Session
+          </div>
         </div>
-      </main>
-
-      {/* ── Footer ──────────────────────────────────────────────────── */}
-      <footer style={{
-        padding: '12px 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderTop: `1px solid ${BORDER}`,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <span style={{ fontSize: 11, color: MUTED }}>Version 2.4.0-Clinical</span>
-          <span style={{ fontSize: 11, color: MUTED }}>Security Audit: PASS</span>
-        </div>
-        <div style={{ display: 'flex', gap: 20 }}>
-          {['Privacy Policy', 'System Status', 'Support Portal'].map((label) => (
-            <a key={label} href="#" style={{ fontSize: 11, color: MUTED, textDecoration: 'none' }}
-              onMouseEnter={(e) => (e.target.style.color = TEAL)}
-              onMouseLeave={(e) => (e.target.style.color = MUTED)}>
-              {label}
-            </a>
-          ))}
-        </div>
-      </footer>
+      </div>
     </div>
   )
 }
