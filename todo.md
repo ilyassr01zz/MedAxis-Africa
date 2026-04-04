@@ -66,14 +66,14 @@
 - [x] Backend: GET /api/regulator/doctors with filters + pagination
 - [x] Backend: PATCH /api/regulator/doctors/:id/approve and /revoke
 - [x] Backend: GET /api/regulator/pharmacists
-- [ ] Make all other portals match DESIGN.md exactly (verify against mockups)
+- [x] Make all other portals match DESIGN.md exactly (verify against mockups)
 - [ ] Record demo video (backup for live demo)
-- [ ] Test full 6-step flow end to end
-- [ ] Fix all bugs found during end-to-end test
+- [x] Test full 6-step flow end to end
+- [x] Fix all bugs found during end-to-end test
 
 ### STRETCH GOALS (Only if Phase 1-6 complete)
-- [ ] Real eSignet integration
-- [ ] Inji Verify SDK in pharmacy portal
+- [x] Real eSignet integration
+- [x] Inji Verify SDK in pharmacy portal
 - [ ] SMS notifications (console.log for prototype)
 - [ ] Insurance portal
 - [ ] Admin panel
