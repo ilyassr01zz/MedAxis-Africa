@@ -60,7 +60,68 @@ Prescription fraud is structurally impossible because:
 5. ✓ System shows three-check verification screen (Doctor VC valid / Prescription valid / Patient OTP verified)
 6. ✓ Pharmacist confirms dispensing → prescription marked DISPENSED, cannot be reused
 
-All 6 core features are complete. The project is now in Phase 6 (Polish & Demo Prep).
+All 6 core features are complete. The project is in Phase 6 (Polish & Demo Prep).
+
+---
+
+## What Has Been Built (Complete Inventory as of April 2026)
+
+### Login Page — frontend/src/portals/login/login.jsx
+- Two-panel layout: 42% teal left panel (#12A5A5), 58% light right panel
+- Left panel: MedAxis logo (260px), subtitle, divider, tagline, description paragraph, three trust badges, footer
+- Right panel: eSignet primary auth section (OIDC button, full callback handler), divider, staff/demo username+password form with 2×2 role selector grid
+- Real MOSIP eSignet OIDC callback: exchanges code for token, decodes JWT userinfo (base64url), maps pairwise `sub` to CNIE via hardcoded table, calls `loginDirect`
+- Mobile responsive: left panel hidden at <768px
+- All text Space Grotesk, no Tailwind in JSX
+
+### Doctor Portal — frontend/src/portals/doctor/doctor-portal.jsx
+- Full sidebar layout: top logo + "Infrastructure Portal" label, nav items, bottom "Help Center" + "Logout"
+- Top header: MedAxis logo block, "Doctor Portal" center label, notifications bell + settings gear + avatar (initial)
+- Dashboard view: 4 stats cards (total Rx, patients, dispensed, pending), recent activity feed, prescriptions table with status filters
+- New Prescription form: patient CNIE lookup + hash, 30-medication selector with ICD-10 codes, dosage/form/frequency/duration per med, notes field
+- My Prescriptions history view with cancel action
+- API-connected with graceful mock fallback
+
+### Pharmacy Portal — frontend/src/portals/pharmacy/pharmacy-portal.jsx
+- Full sidebar layout: top "MedAxis Admin / PHARMACY PORTAL" label, nav items, bottom "Help Center" + "Logout"
+- Top header: MedAxis logo block, "Pharmacy Workspace" center label, notifications bell + settings gear + avatar
+- Dashboard view: KPI cards, active queue preview, recent dispensing activity feed
+- Patient Lookup view: enter CNIE → see all active prescriptions → navigate to verification screen
+- Active Queue view: paginated queue of prescriptions awaiting dispensing
+- Dispense History view: full log of all dispensed prescriptions
+
+### Verification Screen — frontend/src/portals/pharmacy/verification-screen.jsx
+- Three-card check: Doctor VC Valid / Prescription Valid / Patient OTP Confirmed
+- Each card transitions PENDING → VERIFIED with checkbox
+- Confirm Dispense button only enables when all three checks pass
+- Calls POST /api/prescriptions/:rx_id/dispense on confirm
+
+### Patient Portal — frontend/src/portals/patient/patient-portal.jsx
+- Read-only prescription history
+- Report unauthorized prescription (POST /api/prescriptions/:rx_id/dispute)
+- Submit insurance claim simulation (Ma MGPAP)
+
+### Regulator Dashboard — 4 files, 5 views
+- regulator-dashboard.jsx: shell + dashboard view (stats cards → nav, filter bar, region SVG bar chart, verification latency widget) + disputes view (expand/review)
+- regulator-prescriptions-view.jsx: paginated prescription registry, search + filters
+- regulator-statistics-view.jsx: inline SVG line chart + SVG donut chart (no Recharts)
+- doctor-licenses-view.jsx: doctor registry, approve/revoke with AuditLog write
+
+### Backend — fully implemented
+- Auth: login, /me, send-otp, verify-otp (5-min TTL, 3-attempt limit), esignet/callback
+- Prescriptions: create, list own, by-patient lookup, cancel, dispense, audit trail, dispute, patient-view
+- Pharmacy: dashboard KPIs, activity feed, active queue, dispense history
+- Regulator: stats with filters, prescriptions registry paginated, doctor registry paginated, approve/revoke/status, pharmacists list, disputes list, review dispute
+- Insurance: submit claim, monthly report
+- eSignet service: RS256 client assertion JWT, real OIDC token exchange, JWT userinfo decode, sub→CNIE mapping
+- Middleware: JWT auth, RBAC per endpoint, immutable AuditLog on every state change, structured error handling
+
+### Security & Privacy
+- CNIE stored as SHA-256 hash only — raw CNIE never persisted or returned from API
+- Phone stored as hash only
+- JWT held in React state (memory) only — never localStorage
+- Every state-changing call writes to AuditLog with actor, action, timestamp
+- RBAC enforced at route level — 403 with no data leak on unauthorized access
 
 ---
 
