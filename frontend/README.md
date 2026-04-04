@@ -64,4 +64,4 @@ src/
 - No drop shadows (`boxShadow` is forbidden), no gradients
 - Government healthcare aesthetic — borders not shadows, status dots not badges
 
-See the root `CLAUDE.md` for the full design system and architectural constraints.
+See the root `README.md` for the full design system and architectural constraints.

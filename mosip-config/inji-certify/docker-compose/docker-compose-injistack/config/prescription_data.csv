@@ -1,0 +1,3 @@
+id,prescriptionId,medication,dosage,doctorName,patientCNIE,expiryDate,status
+5860356276,RX-DEMO-0001,Amoxicillin 500mg,3 capsules daily - 7 days,Dr. Ahmed,5860356276,2026-06-30,ACTIVE
+2154189532,RX-DEMO-0002,Paracetamol 1g,2 tablets 3x daily - 5 days,Dr. Ahmed,2154189532,2026-06-30,ACTIVE
