@@ -40,9 +40,9 @@ MedAxis creates a tamper-proof national prescription ledger. It does **not** rep
 | 2 | Doctor issues prescription linked to patient CNIE | ✅ |
 | 3 | Pharmacist authenticates via MOSIP eSignet | ✅ |
 | 4 | Pharmacist looks up patient by CNIE | ✅ |
-| 5 | Three-check verification: Doctor VC + Prescription validity + Patient OTP | ✅ |
+| 5 | Three-check verification: Licensed Doctor verification + Prescription validity + Patient verification | ✅ |
 | 6 | Pharmacist confirms dispensing — prescription marked DISPENSED permanently | ✅ |
-| 7 | Patient portal: prescription history + dispute + insurance claim | ✅ |
+| 7 | Patient portal: prescription history + dispute + access to Inji wallet | ✅ |
 | 8 | Regulator dashboard: national stats, audit trail, license management | ✅ |
 
 ---
@@ -56,7 +56,6 @@ MedAxis creates a tamper-proof national prescription ledger. It does **not** rep
 | Database | SQLite via Prisma 7 + better-sqlite3 |
 | Auth | JWT (jsonwebtoken) + bcryptjs |
 | Identity | MOSIP eSignet (OIDC) + Inji Verify SDK |
-| Styling | Inline styles, Space Grotesk font |
 
 ---
 
@@ -125,7 +124,7 @@ npm install
 Create a `.env` file inside `backend/`:
 
 ```env
-PORT=3001
+PORT=3005
 DATABASE_URL=file:./prisma/medaxis.db
 JWT_SECRET=medaxis-dev-secret-change-in-production
 JWT_EXPIRES_IN=8h
@@ -147,7 +146,7 @@ Start the backend dev server:
 npm run dev
 ```
 
-Backend is now running at **http://localhost:3001**
+Backend is now running at **http://localhost:3005**
 
 ---
 
