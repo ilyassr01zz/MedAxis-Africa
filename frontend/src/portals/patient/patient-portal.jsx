@@ -404,6 +404,7 @@ export default function PatientPortal() {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [visibleCount, setVisibleCount]         = useState(4)
   const [prescriptionList, setPrescriptionList] = useState([])
+  const [activeView, setActiveView]             = useState('prescriptions')
   const [disputeModal, setDisputeModal]         = useState({ open: false, prescription: null })
   const [disputeReason, setDisputeReason]       = useState('')
   const [disputeSubmitting, setDisputeSubmitting] = useState(false)
@@ -631,6 +632,166 @@ export default function PatientPortal() {
       {/* ── Main content ─────────────────────────────────────────────── */}
       <main style={{ maxWidth: '900px', width: '100%', margin: '0 auto', padding: '40px 24px 80px', flex: 1 }}>
 
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #E5E7EB', marginBottom: '36px' }}>
+          {[
+            { key: 'prescriptions', label: 'My Prescriptions', icon: 'description' },
+            { key: 'credentials',   label: 'My Credentials',   icon: 'wallet'       },
+          ].map(tab => {
+            const active = activeView === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveView(tab.key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 20px',
+                  background: 'none', border: 'none',
+                  borderBottom: active ? '2px solid #0D7C7C' : '2px solid transparent',
+                  marginBottom: -1,
+                  color: active ? '#0D7C7C' : '#6B7280',
+                  fontSize: 14, fontWeight: active ? 600 : 500,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── CREDENTIALS VIEW ────────────────────────────────────────── */}
+        {activeView === 'credentials' && (
+          <div>
+
+            {/* Page heading */}
+            <div style={{ marginBottom: 32 }}>
+              <h1 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 28, fontWeight: 700,
+                color: '#1A1A2E',
+                margin: '0 0 8px', letterSpacing: '-0.02em',
+              }}>
+                My Digital Credentials
+              </h1>
+              <p style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 15, color: '#6B7280', margin: 0,
+              }}>
+                Download your signed prescription credentials
+              </p>
+            </div>
+
+            {/* Main card */}
+            <div style={{
+              border: '1px solid #E5E7EB',
+              borderRadius: 8,
+              padding: 32,
+              backgroundColor: '#FFFFFF',
+              marginBottom: 16,
+            }}>
+              {/* Shield icon + title */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 36, color: '#0D7C7C', flexShrink: 0 }}>
+                  shield
+                </span>
+                <div>
+                  <h2 style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontSize: 18, fontWeight: 700, color: '#1A1A2E',
+                    margin: '0 0 6px',
+                  }}>
+                    Prescription Verifiable Credential
+                  </h2>
+                  <p style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontSize: 14, color: '#6B7280', margin: 0, lineHeight: 1.6,
+                  }}>
+                    Your prescription signed by your doctor, verified by Morocco's Digital ID infrastructure
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{ height: 1, backgroundColor: '#E5E7EB', margin: '0 0 24px' }} />
+
+              {/* HOW IT WORKS */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontSize: 11, fontWeight: 600, color: '#0D7C7C',
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                  marginBottom: 16,
+                }}>
+                  How It Works
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {[
+                    'Open Inji Wallet in new tab',
+                    'Continue as Guest → MedAxis Prescription',
+                    'Enter UIN: 5860356276 · OTP: 111111',
+                    'Download PDF and show to pharmacist',
+                  ].map((step, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%',
+                        backgroundColor: '#0D7C7C',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontSize: 12, fontWeight: 700, color: '#fff',
+                      }}>
+                        {i + 1}
+                      </div>
+                      <span style={{
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontSize: 14, color: '#1A1A2E',
+                      }}>
+                        {step}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Open button */}
+              <button
+                onClick={() => window.open('http://localhost:3004', '_blank')}
+                style={{
+                  width: '100%', height: 52,
+                  backgroundColor: '#0D7C7C',
+                  color: '#fff', border: 'none', borderRadius: 6,
+                  fontSize: 16, fontWeight: 600,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  cursor: 'pointer',
+                  letterSpacing: '0.01em',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.88' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1' }}
+              >
+                Open Inji Wallet →
+              </button>
+
+              {/* Note */}
+              <p style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 13, color: '#9CA3AF',
+                textAlign: 'center', margin: '12px 0 0',
+              }}>
+                Inji Wallet will open in a new tab
+              </p>
+            </div>
+
+          </div>
+        )}
+
+        {/* ── PRESCRIPTIONS VIEW ──────────────────────────────────────── */}
+        {activeView === 'prescriptions' && (
+          <div>
+
         {/* Page heading */}
         <div style={{ marginBottom: '28px' }}>
           <h1 style={{
@@ -829,6 +990,8 @@ export default function PatientPortal() {
             records
           </p>
         </div>
+          </div>
+        )}
       </main>
 
       {/* ── Dispute modal ────────────────────────────────────────────── */}
