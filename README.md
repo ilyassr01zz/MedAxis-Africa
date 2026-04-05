@@ -262,7 +262,8 @@ curl -X POST http://localhost:8088/v1/esignet/client-mgmt/oidc-client \
 
 ---
 
-### 1.5 Create mock identities in eSignet
+### 1.5 Create mock identities in eSignet (now go to /MedAxis_Africa-did-hackathon folder)
+
 
 Insert the four demo identities into the mock identity database:
 
