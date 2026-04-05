@@ -286,7 +286,7 @@ ON CONFLICT (individual_id) DO NOTHING;
 
 ### 1.6 Start Inji Certify
 
-**Before starting, ensure the keystore file is properly set up:**
+**Before starting, ensure the keystore file is properly set up (git bash):**
 ```bash
 cd inji-certify/docker-compose/docker-compose-injistack/certs
 
