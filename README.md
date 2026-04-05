@@ -422,7 +422,6 @@ docker-compose up -d
 ### 2.1 Clone this repository
 
 ```bash
-git clone https://github.com/ilyassr01zz/MedAxis_Africa-did-hackathon.git
 cd MedAxis_Africa-did-hackathon
 
 ```
