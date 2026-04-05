@@ -106,7 +106,7 @@ cd inji-verify && cd ..
 Your folder structure should now look like:
 
 ```
-parent-folder/
+parent-folder/               ← stay here and continue instructions
 ├── MedAxis_Africa-did-hackathon/ 
 ├── esignet/
 ├── inji-certify/
@@ -115,7 +115,7 @@ parent-folder/
 
 ---
 
-### 1.1b Apply MedAxis configuration to MOSIP repos
+### 1.1 Apply MedAxis configuration to MOSIP repos
 
 This repository includes pre-configured MOSIP files in the `mosip-config/` folder. Copy them into the cloned MOSIP repositories:
 
@@ -156,7 +156,7 @@ What these files contain:
 The DID document is a public JSON file that Inji Certify uses to publish its cryptographic keys. It must be hosted on a publicly accessible URL.
 
 1. Go to [github.com/new](https://github.com/new) and create a **public** repository named `medaxis-did`
-2. Clone it locally: `git clone https://github.com/<your-username>/medaxis-did.git`
+2. Clone it locally: `git clone https://github.com/<your-username>/medaxis-did.git   ← in parent-folder `   
 3. Inside the repo, create the folder structure and a placeholder file:
    ```bash
    cd medaxis-did
