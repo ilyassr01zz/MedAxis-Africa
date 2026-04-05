@@ -426,7 +426,7 @@ docker-compose up -d
 
 ## Part 2 — MedAxis Application Setup
 
-### 2.1 Clone this repository
+### 2.1 cd to this repository
 
 ```bash
 cd MedAxis_Africa-did-hackathon
@@ -488,12 +488,6 @@ npm install
 If npm install gives a React version conflict error, run:
 ```bash
 npm install --legacy-peer-deps
-```
-
-Create a `.env` file inside `frontend/`:
-```env
-VITE_API_URL=http://localhost:3005/api
-VITE_APP_NAME=MedAxis
 ```
 
 Start the frontend:
