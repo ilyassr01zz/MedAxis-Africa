@@ -472,6 +472,12 @@ Open a new terminal:
 cd frontend
 npm install
 ```
+if npm install gave an error because of React conflict, run:
+
+```bash
+npm install --legacy-peer-deps
+```
+
 
 Create a `.env` file inside `frontend/`:
 
