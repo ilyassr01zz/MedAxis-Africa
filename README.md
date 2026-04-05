@@ -85,7 +85,7 @@ The full MedAxis stack consists of two independent parts that run simultaneously
 
 ### 1.1 Clone MOSIP repositories
 
-Clone these repositories **in the same parent folder** as MedAxis-Africa (not inside it):
+Clone these repositories **in the same parent folder** as MedAxis_Africa-did-hackathon (not inside it):
 
 ```bash
 # eSignet — MOSIP OpenID Connect server
@@ -107,7 +107,7 @@ Your folder structure should now look like:
 
 ```
 parent-folder/
-├── MedAxis-Africa/       ← this repo
+├── MedAxis_Africa-did-hackathon/ 
 ├── esignet/
 ├── inji-certify/
 └── inji-verify/
@@ -121,23 +121,23 @@ This repository includes pre-configured MOSIP files in the `mosip-config/` folde
 
 ```bash
 # Copy Inji Certify config files
-cp -r mosip-config/inji-certify/docker-compose/docker-compose-injistack/docker-compose.yaml \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/inji-certify/docker-compose/docker-compose-injistack/docker-compose.yaml \
   inji-certify/docker-compose/docker-compose-injistack/
 
-cp -r mosip-config/inji-certify/docker-compose/docker-compose-injistack/certify_init.sql \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/inji-certify/docker-compose/docker-compose-injistack/certify_init.sql \
   inji-certify/docker-compose/docker-compose-injistack/
 
-cp -r mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/certify-csvdp-prescription.properties \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/certify-csvdp-prescription.properties \
   inji-certify/docker-compose/docker-compose-injistack/config/
 
-cp -r mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/prescription_data.csv \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/prescription_data.csv \
   inji-certify/docker-compose/docker-compose-injistack/config/
 
-cp -r mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/mimoto-issuers-config.json \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/inji-certify/docker-compose/docker-compose-injistack/config/mimoto-issuers-config.json \
   inji-certify/docker-compose/docker-compose-injistack/config/
 
 # Copy eSignet config (port changed from 3000 to 3007)
-cp -r mosip-config/esignet/docker-compose/docker-compose.yml \
+cp -r MedAxis_Africa-did-hackathon/mosip-config/esignet/docker-compose/docker-compose.yml \
   esignet/docker-compose/
 ```
 
@@ -199,7 +199,7 @@ Wait 2 minutes for all containers to initialize.
 
 ### 1.4 Register MedAxis as an OIDC client with eSignet
 
-Run the following from inside the `MedAxis-Africa/backend` folder.
+Run the following from inside the `MedAxis_Africa-did-hackathon/backend` folder.
 
 **Step A — Generate an RSA keypair:**
 
@@ -358,8 +358,9 @@ docker-compose up -d
 ### 2.1 Clone this repository
 
 ```bash
-git clone https://github.com/ilyassr01zz/MedAxis-Africa.git
-cd MedAxis-Africa
+git clone https://github.com/ilyassr01zz/MedAxis_Africa-did-hackathon.git
+cd MedAxis_Africa-did-hackathon
+
 ```
 
 ---
@@ -438,7 +439,7 @@ Docker Desktop must be running.
 
 ### Start MedAxis with Docker
 
-From the root of the MedAxis-Africa repository:
+From the root of the MedAxis_Africa-did-hackathon repository:
 
 ```bash
 docker-compose up --build
@@ -474,7 +475,7 @@ ESIGNET_BASE_URL=http://localhost:8088
 ## Project Structure
 
 ```
-MedAxis-Africa/
+MedAxis_Africa-did-hackathon/
 ├── frontend/                    # React 19 + Vite frontend
 │   ├── src/
 │   │   ├── portals/
@@ -673,11 +674,11 @@ Every time you restart your machine, start services in this exact order:
    ```
 7. **Start MedAxis backend:**
    ```bash
-   cd MedAxis-Africa/backend && npm run dev
+   cd MedAxis_Africa-did-hackathon/backend && npm run dev
    ```
 8. **Start MedAxis frontend:**
    ```bash
-   cd MedAxis-Africa/frontend && npm run dev
+   cd MedAxis_Africa-did-hackathon/frontend && npm run dev
    ```
 
 ---
