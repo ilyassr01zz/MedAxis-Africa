@@ -16,7 +16,6 @@ Morocco's paper-based prescription system enables:
 - No real-time doctor license verification at the point of dispensing
 - Duplicate dispensing ("pharmacy hopping") for controlled substances
 - No national audit trail for regulators
-- Insurance reimbursement delays of weeks
 - Leakage of controlled substances into illicit markets
 
 ## The Solution
@@ -28,7 +27,6 @@ MedAxis creates a tamper-proof national prescription ledger. It does **not** rep
 2. Every prescription is cryptographically signed and linked to a patient CNIE hash
 3. Pharmacists verify doctor license, prescription validity, and patient identity before dispensing
 4. Every dispensing event is logged and immutable
-5. Insurance claims are automatically validated against the ledger
 
 ---
 
@@ -42,7 +40,7 @@ MedAxis creates a tamper-proof national prescription ledger. It does **not** rep
 | 4 | Pharmacist looks up patient by CNIE | ✅ |
 | 5 | Three-check verification: Doctor VC + Prescription validity + Patient OTP | ✅ |
 | 6 | Pharmacist confirms dispensing — prescription marked DISPENSED permanently | ✅ |
-| 7 | Patient portal: prescription history + dispute + insurance claim | ✅ |
+| 7 | Patient portal: prescription history + dispute + inji web wallet | ✅ |
 | 8 | Regulator dashboard: national stats, audit trail, license management | ✅ |
 
 ---
@@ -476,7 +474,7 @@ MedAxis-Africa/
 │   └── public/
 ├── backend/                     # Node.js + Express API
 │   ├── src/
-│   │   ├── routes/              # Auth, prescriptions, pharmacy, regulator, insurance
+│   │   ├── routes/              # Auth, prescriptions, pharmacy, regulator
 │   │   ├── controllers/         # Business logic per route group
 │   │   ├── middleware/          # JWT auth, RBAC, audit logging, error handling
 │   │   ├── services/            # eSignet + Inji Certify integrations
@@ -605,8 +603,6 @@ PATCH  /api/regulator/doctors/:doctor_id/revoke
 GET    /api/regulator/disputes
 PATCH  /api/regulator/disputes/:rx_id/review
 
-POST   /api/insurance/claims
-GET    /api/insurance/claims
 ```
 
 ---
