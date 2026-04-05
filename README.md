@@ -154,6 +154,7 @@ What these files contain:
 - `prescription_data.csv` — demo prescription data linked to UIN `5860356276`
 - `mimoto-issuers-config.json` — adds MedAxis Hospital as an issuer in Inji Web
 - `docker-compose.yml` (eSignet) — changes UI port from 3000 to 3007
+- Also update ANY github username that has ilyassr01zz to your own username
 
 ---
 
