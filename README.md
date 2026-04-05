@@ -83,7 +83,7 @@ The full MedAxis stack consists of two independent parts that run simultaneously
 
 > **Start here if running for the first time.** If you have already completed this setup, skip to [Daily Restart Procedure](#daily-restart-procedure).
 
-### 1.1 Clone MOSIP repositories
+### 1.1b Clone MOSIP repositories
 
 Clone these repositories **in the same parent folder** as MedAxis_Africa-did-hackathon (not inside it):
 
