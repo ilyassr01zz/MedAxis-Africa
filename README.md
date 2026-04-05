@@ -435,81 +435,125 @@ cd MedAxis_Africa-did-hackathon
 ---
 
 ### 2.2 Backend setup
-
 ```bash
 cd backend
 npm install
 ```
 
-Run database migrations and seed demo data:
-
+**If npm install fails due to React version conflicts:**
 ```bash
-npm run setup
-npm audit fix
+npm install --legacy-peer-deps
 ```
 
+**Set up the database:**
 ```bash
 npx prisma generate
+npx prisma migrate dev --name init
 ```
 
-> This runs `prisma migrate dev` then seeds the database with demo accounts and a sample prescription.
+This creates all necessary tables (User, Prescription, etc.) in your SQLite database.
 
-Start the backend:
-
+**Start the backend:**
 ```bash
 npm run dev
 ```
 
 ✅ **Verify:** Open [http://localhost:3005/api/health](http://localhost:3005/api/health) — you should see `{ "status": "ok" }`.
 
+**Troubleshooting: "The table `main.User` does not exist"**
+
+If you see this error when logging in, the database tables weren't created. Run:
+```bash
+npx prisma migrate dev --name init
+# Or if that doesn't work:
+npx prisma db push
+```
+
+Then restart the backend:
+```bash
+npm run dev
+```
+
 ---
 
 ### 2.3 Frontend setup
 
 Open a new terminal:
-
 ```bash
 cd frontend
 npm install
 ```
-if npm install gave an error because of React conflict, run:
 
+If npm install gives a React version conflict error, run:
 ```bash
 npm install --legacy-peer-deps
 ```
 
-
 Create a `.env` file inside `frontend/`:
-
 ```env
 VITE_API_URL=http://localhost:3005/api
 VITE_APP_NAME=MedAxis
 ```
 
 Start the frontend:
-
 ```bash
 npm run dev
 ```
 
 ✅ **Verify:** Open [http://localhost:5173](http://localhost:5173) — the MedAxis login page should load.
 
+**Demo Credentials:**
+
+You can log in using the pre-seeded demo accounts:
+
+| Role | Username | Password |
+|------|----------|----------|
+| Doctor | `DOCTOR001` | `leave empty` |
+| Pharmacist | `PHARM001` | `leave empty` |
+| Patient | `PATIENT001` | `leave empty` |
+| Regulator | `REGULATOR001` | `leave empty` |
+
+**Troubleshooting: Login fails with 500 error**
+
+Check that both services are running:
+1. **Backend running?** Open [http://localhost:3005/api/health](http://localhost:3005/api/health) in your browser
+2. **Frontend can reach backend?** Check browser DevTools Console (F12) for errors
+3. **Database tables created?** If you see "table does not exist" error in backend terminal, run `npx prisma migrate dev --name init`
+
 ---
 
-## Part 3 — Running MedAxis with Docker (Recommended)
+## Part 3 — Running MedAxis with Docker (Optional)
 
-Instead of running the backend and frontend manually with `npm`, you can use Docker Compose to start the entire MedAxis application with a single command.
+Instead of running backend and frontend manually with `npm`, you can use Docker Compose.
 
-> ⚠️ This only dockerizes the MedAxis app (frontend + backend). The MOSIP stack (eSignet, Inji Certify, Inji Verify) must still be started separately as described in Part 1.
+> ⚠️ **Important:** This only dockerizes MedAxis (frontend + backend). The MOSIP stack (eSignet, Inji Certify) must still be started separately as described in Part 1.
 
 ### Prerequisites
+- Docker Desktop must be running
+- Port 3005 and 5173 must be available
 
-Docker Desktop must be running.
+### Update Frontend Dockerfile for React 19
+
+Edit `frontend/Dockerfile` and change the npm install line:
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install --legacy-peer-deps
+
+COPY . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev"]
+```
 
 ### Start MedAxis with Docker
 
 From the root of the MedAxis_Africa-did-hackathon repository:
-
 ```bash
 docker-compose up --build
 ```
@@ -518,27 +562,38 @@ This will:
 1. Build the backend Docker image (Node.js 20)
 2. Build the frontend Docker image (React + Vite)
 3. Run database migrations automatically
-4. Seed demo accounts
-5. Start both services
+4. Start both services
 
-✅ Frontend: [http://localhost:5173](http://localhost:5173)
+✅ Frontend: [http://localhost:5173](http://localhost:5173)  
 ✅ Backend: [http://localhost:3005](http://localhost:3005)
 
-### Stop MedAxis Docker
+**Troubleshooting: "ports are not available" error**
 
+If you see `bind: Only one usage of each socket address (protocol/network address/port) is normally permitted`, either:
+
+1. **Stop the local npm servers:**
+   - Press `Ctrl+C` in the terminal running `npm run dev`
+   - Then run `docker-compose up --build` again
+
+2. **Or stop Docker and use local development:**
+```bash
+   docker-compose down
+   # Then use npm run dev in separate terminals as in Section 2.2 & 2.3
+```
+
+### Stop MedAxis Docker
 ```bash
 docker-compose down
 ```
 
 ### Environment variables with Docker
 
-The `docker-compose.yml` at the root of the repo includes all required environment variables. If you need to override any value, create a `.env` file at the root:
-
+The `docker-compose.yml` includes all required variables. Override them by creating a `.env` file at the root:
 ```env
+PORT=3005
 JWT_SECRET=your-custom-secret
 ESIGNET_BASE_URL=http://localhost:8088
 ```
-
 ---
 
 ## Project Structure
