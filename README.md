@@ -284,17 +284,80 @@ ON CONFLICT (individual_id) DO NOTHING;
 
 ---
 
-### 1.6 Start Inji Certify ( now go to /parent-folder)
+### 1.6 Start Inji Certify
 
+**Before starting, ensure the keystore file is properly set up:**
 ```bash
-cd inji-certify/docker-compose/docker-compose-injistack
+cd inji-certify/docker-compose/docker-compose-injistack/certs
+
+# Download the PKCS12 keystore file
+curl -L -o oidckeystore.p12.zip "https://github.com/mosip/documentation/raw/inji/docs/.gitbook/assets/oidckeystore.p12.zip"
+
+# Remove any existing directory with the same name
+rm -rf oidckeystore.p12
+
+# Extract the keystore file
+unzip oidckeystore.p12.zip
+
+# When prompted to replace files, type 'A' and press Enter twice
+# Clean up unnecessary files
+rm oidckeystore.p12.zip
+rm -rf __MACOSX
+
+# Verify the file exists (should be ~4KB)
+ls -lh oidckeystore.p12
+```
+
+**Now start the Inji Certify stack:**
+```bash
+cd ../
 docker network create mosip_network 2>/dev/null || true
 docker-compose up -d
 ```
 
 Wait **3 minutes** for all services to be ready (Certify, Mimoto, Inji Web, database).
 
-✅ **Verify:** Open [http://localhost:8090/v1/certify/issuance/.well-known/openid-credential-issuer](http://localhost:8090/v1/certify/issuance/.well-known/openid-credential-issuer) — you should see a JSON response with issuer metadata.
+**Verify all containers are running:**
+```bash
+docker ps
+```
+
+You should see these containers running:
+- `docker-compose-injistack-database-1`
+- `docker-compose-injistack-certify-1`
+- `mimoto-service`
+- `docker-compose-injistack-certify-nginx-1`
+- `inji-web`
+
+✅ **Verify Certify is responding:**
+
+Open your browser and navigate to [http://localhost:8090/v1/certify/issuance/.well-known/openid-credential-issuer](http://localhost:8090/v1/certify/issuance/.well-known/openid-credential-issuer) — you should see a JSON response with issuer metadata.
+
+**Troubleshooting: If `mimoto-service` is not running:**
+
+If the container exits with a keystore error, check the logs:
+```bash
+docker logs mimoto-service | tail -20
+```
+
+**Common error:** `java.io.FileNotFoundException: /home/mosip/certs/oidckeystore.p12 (Is a directory)`
+
+**Fix:** Delete the directory and re-download the keystore:
+```bash
+cd inji-certify/docker-compose/docker-compose-injistack/certs
+rm -rf oidckeystore.p12
+curl -L -o oidckeystore.p12.zip "https://github.com/mosip/documentation/raw/inji/docs/.gitbook/assets/oidckeystore.p12.zip"
+unzip oidckeystore.p12.zip
+rm oidckeystore.p12.zip
+rm -rf __MACOSX
+
+cd ../
+docker-compose down
+sleep 5
+docker-compose up -d
+```
+
+The keystore password is: **`xy4gh6swa2i`** (configured automatically in docker-compose.yaml).
 
 ---
 
