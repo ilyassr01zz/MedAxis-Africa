@@ -448,6 +448,10 @@ npm run setup
 npm audit fix
 ```
 
+```bash
+npx prisma generate
+```
+
 > This runs `prisma migrate dev` then seeds the database with demo accounts and a sample prescription.
 
 Start the backend:
