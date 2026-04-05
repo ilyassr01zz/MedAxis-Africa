@@ -90,6 +90,7 @@ Clone these 4 repositories **in the same parent folder** :
 ```bash
 # MedAxis Repo setup:
 git clone https://github.com/ilyassr01zz/MedAxis_Africa-did-hackathon.git
+cd ..
 ```
 
 ```bash
