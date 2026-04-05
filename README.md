@@ -85,7 +85,12 @@ The full MedAxis stack consists of two independent parts that run simultaneously
 
 ### 1.1b Clone MOSIP repositories
 
-Clone these repositories **in the same parent folder** as MedAxis_Africa-did-hackathon (not inside it):
+Clone these 4 repositories **in the same parent folder** :
+
+```bash
+# MedAxis Repo setup:
+git clone https://github.com/ilyassr01zz/MedAxis_Africa-did-hackathon.git
+```
 
 ```bash
 # eSignet — MOSIP OpenID Connect server
