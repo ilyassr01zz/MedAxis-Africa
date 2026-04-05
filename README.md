@@ -56,6 +56,8 @@ Install all of the following before proceeding:
 
 > **Windows users:** Use PowerShell or Git Bash for all commands. Run Docker Desktop as Administrator if you encounter permission errors.
 
+> **Linux users:** All commands work natively in terminal. Use `sudo` before docker commands if you encounter permission errors, or add your user to the docker group: `sudo usermod -aG docker $USER`
+
 ---
 
 ## Architecture Overview
@@ -243,6 +245,19 @@ Invoke-RestMethod -Uri "http://localhost:8088/v1/esignet/client-mgmt/oidc-client
 
 ✅ **Expected response:** `clientId: medaxis-client`, `status: ACTIVE`
 
+**Linux / macOS alternative:**
+
+Replace `YOUR_N_VALUE` with the `n` value you copied:
+
+```bash
+TIME=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+N_VALUE="YOUR_N_VALUE"
+
+curl -X POST http://localhost:8088/v1/esignet/client-mgmt/oidc-client \
+  -H "Content-Type: application/json" \
+  -d "{\"requestTime\":\"$TIME\",\"request\":{\"clientId\":\"medaxis-client\",\"clientName\":\"MedAxis Africa\",\"relyingPartyId\":\"medaxis-client\",\"logoUri\":\"http://localhost:5173\",\"redirectUris\":[\"http://localhost:5173/login\"],\"userClaims\":[\"name\",\"phone_number\"],\"authContextRefs\":[\"mosip:idp:acr:static-code\"],\"publicKey\":{\"kty\":\"RSA\",\"n\":\"$N_VALUE\",\"e\":\"AQAB\"},\"grantTypes\":[\"authorization_code\"],\"clientAuthMethods\":[\"private_key_jwt\"]}}"
+```
+
 > The generated `esignet_private.pem` file must be placed at `backend/esignet_private.pem`. The backend reads it to sign client assertion JWTs during the OIDC token exchange.
 
 ---
@@ -250,6 +265,8 @@ Invoke-RestMethod -Uri "http://localhost:8088/v1/esignet/client-mgmt/oidc-client
 ### 1.5 Create mock identities in eSignet
 
 Insert the four demo identities into the mock identity database:
+
+> **Linux users:** Use single slash paths in `docker exec` commands. If you see path errors, replace `//home/mosip/...` with `/home/mosip/...`.
 
 ```bash
 docker exec docker-compose-esignet-database-1 psql -U postgres -d mosip_mockidentitysystem -c "
@@ -634,6 +651,8 @@ To fix this for your instance:
 ---
 
 ## Daily Restart Procedure
+
+> All commands below work on both Windows (Git Bash) and Linux/macOS terminal.
 
 Every time you restart your machine, start services in this exact order:
 
