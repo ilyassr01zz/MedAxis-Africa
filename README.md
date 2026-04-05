@@ -441,7 +441,7 @@ cd backend
 npm install
 ```
 
-Create a `.env` file inside `backend/`:
+Create a `.env` file inside `backend/` IF NOT ALREADY THERE:
 
 ```env
 PORT=3005
@@ -456,6 +456,7 @@ Run database migrations and seed demo data:
 
 ```bash
 npm run setup
+npm audit fix
 ```
 
 > This runs `prisma migrate dev` then seeds the database with demo accounts and a sample prescription.
