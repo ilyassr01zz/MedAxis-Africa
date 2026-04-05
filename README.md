@@ -265,7 +265,7 @@ curl -X POST http://localhost:8088/v1/esignet/client-mgmt/oidc-client \
 ### 1.5 Create mock identities in eSignet (now go to /MedAxis_Africa-did-hackathon folder)
 
 
-Insert the four demo identities into the mock identity database:
+Insert the four demo identities into the mock identity database (git bash):
 
 > **Linux users:** Use single slash paths in `docker exec` commands. If you see path errors, replace `//home/mosip/...` with `/home/mosip/...`.
 
@@ -284,7 +284,7 @@ ON CONFLICT (individual_id) DO NOTHING;
 
 ---
 
-### 1.6 Start Inji Certify
+### 1.6 Start Inji Certify ( now go to /parent-folder)
 
 ```bash
 cd inji-certify/docker-compose/docker-compose-injistack
